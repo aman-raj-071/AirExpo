@@ -1,0 +1,143 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AirGuard AI hackathon backend using seven purposeful AWS services.
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 15
+    MemorySize: 256
+    Environment:
+      Variables:
+        PROFILE_TABLE: !Ref ProfileTable
+        SYMPTOM_TABLE: !Ref SymptomTable
+        REPORT_BUCKET: !Ref ReportBucket
+
+Resources:
+  # 1. Cognito — user identity and JWTs
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: airguard-users
+      UsernameAttributes: [email]
+      AutoVerifiedAttributes: [email]
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireUppercase: true
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: airguard-web
+      GenerateSecret: false
+      ExplicitAuthFlows: [ALLOW_USER_SRP_AUTH, ALLOW_REFRESH_TOKEN_AUTH]
+
+  # 2. API Gateway — authenticated HTTP API
+  AirGuardApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins: ['*']
+        AllowHeaders: [authorization, content-type]
+        AllowMethods: [GET, POST, DELETE, OPTIONS]
+      Auth:
+        DefaultAuthorizer: CognitoJwt
+        Authorizers:
+          CognitoJwt:
+            JwtConfiguration:
+              issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}
+              audience: [!Ref UserPoolClient]
+            IdentitySource: $request.header.Authorization
+
+  # 3. Lambda — API and recommendation processing
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/
+      Handler: index.handler
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref ProfileTable }
+        - DynamoDBCrudPolicy: { TableName: !Ref SymptomTable }
+        - S3CrudPolicy: { BucketName: !Ref ReportBucket }
+      Events:
+        AnyApi:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AirGuardApi
+            Path: /{proxy+}
+            Method: ANY
+
+  # 4. DynamoDB — private profiles and symptom observations
+  ProfileTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions: [{ AttributeName: userId, AttributeType: S }]
+      KeySchema: [{ AttributeName: userId, KeyType: HASH }]
+      SSESpecification: { SSEEnabled: true }
+
+  SymptomTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: userId, AttributeType: S }
+        - { AttributeName: recordedAt, AttributeType: S }
+      KeySchema:
+        - { AttributeName: userId, KeyType: HASH }
+        - { AttributeName: recordedAt, KeyType: RANGE }
+      SSESpecification: { SSEEnabled: true }
+
+  # 5. S3 — private, encrypted generated reports
+  ReportBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireHackathonReports
+            Status: Enabled
+            ExpirationInDays: 30
+
+  # 6. EventBridge — periodic AQI alert evaluation
+  AlertSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Evaluate opted-in AirGuard pollution alerts every 30 minutes.
+      ScheduleExpression: rate(30 minutes)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt ApiFunction.Arn
+          Id: AirGuardAlertEvaluator
+          Input: '{"source":"airguard.schedule","action":"evaluate-alerts"}'
+
+  EventBridgeInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ApiFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt AlertSchedule.Arn
+
+  # 7. Amplify Hosting is connected after pushing the repository. The app
+  # resource is intentionally not created here because it needs a repository
+  # URL and source-provider access token supplied by the project owner.
+
+Outputs:
+  ApiUrl:
+    Value: !Sub https://${AirGuardApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}
+  UserPoolId: { Value: !Ref UserPool }
+  UserPoolClientId: { Value: !Ref UserPoolClient }
+  ReportBucketName: { Value: !Ref ReportBucket }
+

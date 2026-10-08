@@ -1,0 +1,8 @@
+{
+  "name": "AirExpo",
+  "description": "Hyper-local environmental tracking and respiratory decision engine leveraging real-time satellite imagery and global atmospheric telemetry.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

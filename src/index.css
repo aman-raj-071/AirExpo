@@ -1,0 +1,207 @@
+@import "tailwindcss";
+
+@theme {
+  --font-data-metric: "Space Grotesk", sans-serif;
+  --font-headline-md: "Space Grotesk", sans-serif;
+  --font-headline-lg: "Space Grotesk", sans-serif;
+  --font-headline-lg-mobile: "Space Grotesk", sans-serif;
+  --font-display-hero: "Space Grotesk", sans-serif;
+  --font-display-hero-mobile: "Space Grotesk", sans-serif;
+  --font-title-md: "Space Grotesk", sans-serif;
+  --font-body-lg: "Inter", sans-serif;
+  --font-body-md: "Inter", sans-serif;
+  --font-body-sm: "Inter", sans-serif;
+  --font-label-md: "IBM Plex Mono", monospace;
+  --font-label-caps: "IBM Plex Mono", monospace;
+
+  --color-primary: #10162f;
+  --color-primary-container: #10162f;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #ffffff;
+  --color-inverse-primary: #ffd300;
+  --color-primary-fixed: #ffd300;
+  --color-primary-fixed-dim: #e8c100;
+  --color-on-primary-fixed: #10162f;
+  --color-on-primary-fixed-variant: #10162f;
+
+  --color-secondary: #ffd300;
+  --color-secondary-container: #fff3a6;
+  --color-on-secondary: #10162f;
+  --color-on-secondary-container: #10162f;
+  --color-secondary-fixed: #ffd300;
+  --color-secondary-fixed-dim: #e8c100;
+  --color-on-secondary-fixed: #10162f;
+  --color-on-secondary-fixed-variant: #10162f;
+
+  --color-tertiary: #3a10e5;
+  --color-tertiary-container: #5533ff;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-container: #fff0f1;
+  --color-tertiary-fixed: #ffd9dd;
+  --color-tertiary-fixed-dim: #ffb2bc;
+  --color-on-tertiary-fixed: #400012;
+  --color-on-tertiary-fixed-variant: #891737;
+
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #93000a;
+
+  --color-background: #fff0e5;
+  --color-on-background: #10162f;
+  --color-surface: #fff0e5;
+  --color-on-surface: #10162f;
+  --color-surface-variant: #e7e5e0;
+  --color-on-surface-variant: #42465d;
+  --color-surface-dim: #dedbd3;
+  --color-surface-bright: #fffaf5;
+  --color-surface-tint: #3a10e5;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f7e6da;
+  --color-surface-container: #eadbd1;
+  --color-surface-container-high: #ded3ca;
+  --color-surface-container-highest: #d2c7be;
+  --color-inverse-surface: #10162f;
+  --color-inverse-on-surface: #ffffff;
+
+  --color-outline: #61657a;
+  --color-outline-variant: #10162f;
+
+  --spacing-space-xs: 0.25rem;
+  --spacing-space-sm: 0.5rem;
+  --spacing-space-md: 1rem;
+  --spacing-space-lg: 1.5rem;
+  --spacing-space-xl: 2.5rem;
+  --spacing-margin: 3rem;
+  --spacing-margin-mobile: 1rem;
+  --spacing-gutter: 1.5rem;
+  --spacing-gutter-mobile: 0.75rem;
+}
+
+body {
+  font-family: var(--font-body-md), sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-on-surface);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-data-metric { font-family: "Space Grotesk", sans-serif; font-size: 44px; line-height: 48px; letter-spacing: -0.02em; font-weight: 700; }
+.font-display-hero { font-family: "Space Grotesk", sans-serif; font-size: 64px; line-height: 66px; letter-spacing: -0.045em; font-weight: 700; }
+.font-display-hero-mobile { font-family: "Space Grotesk", sans-serif; font-size: 40px; line-height: 43px; letter-spacing: -0.035em; font-weight: 700; }
+.font-headline-lg { font-family: "Space Grotesk", sans-serif; font-size: 34px; line-height: 39px; letter-spacing: -0.025em; font-weight: 700; }
+.font-headline-lg-mobile { font-family: "Space Grotesk", sans-serif; font-size: 27px; line-height: 32px; letter-spacing: -0.02em; font-weight: 700; }
+.font-headline-md { font-family: "Space Grotesk", sans-serif; font-size: 23px; line-height: 28px; letter-spacing: -0.015em; font-weight: 700; }
+.font-title-md { font-family: "Space Grotesk", sans-serif; font-size: 18px; line-height: 24px; font-weight: 700; }
+.font-body-lg { font-family: "Inter", sans-serif; font-size: 17px; line-height: 27px; font-weight: 400; }
+.font-body-md { font-family: "Inter", sans-serif; font-size: 15px; line-height: 23px; font-weight: 400; }
+.font-body-sm { font-family: "Inter", sans-serif; font-size: 13px; line-height: 19px; font-weight: 400; }
+.font-label-md { font-family: "IBM Plex Mono", monospace; font-size: 12px; line-height: 16px; letter-spacing: 0; font-weight: 600; }
+.font-label-caps { font-family: "IBM Plex Mono", monospace; font-size: 11px; line-height: 14px; letter-spacing: 0.06em; font-weight: 600; }
+
+.leaflet-container {
+  font-family: inherit;
+  background: #e2e8f0;
+}
+
+/* Editorial learning-platform inspired theme */
+header {
+  background: #10162f !important;
+  border-bottom: 1px solid #ffffff33 !important;
+  box-shadow: none !important;
+}
+
+header .text-on-surface,
+header .text-on-surface-variant,
+header .text-outline {
+  color: #fff !important;
+}
+
+header nav {
+  background: #10162f !important;
+  border-color: #ffffff40 !important;
+  border-radius: 4px !important;
+}
+
+header nav button.bg-primary {
+  background: #ffd300 !important;
+  color: #10162f !important;
+}
+
+header button.bg-primary-container {
+  background: #ffd300 !important;
+  color: #10162f !important;
+  border: 1px solid #ffd300;
+}
+
+#hero-search-section {
+  background-color: #10162f;
+  background-image: radial-gradient(#ffffff1f 1px, transparent 1px);
+  background-size: 18px 18px;
+  color: #fff;
+  padding-top: 4.5rem;
+  padding-bottom: 4.5rem;
+  border-bottom: 1px solid #10162f;
+}
+
+#hero-search-section h1,
+#hero-search-section > p,
+#hero-search-section > div:last-child > span {
+  color: #fff !important;
+}
+
+#hero-search-section > div:first-of-type {
+  border-radius: 3px !important;
+  box-shadow: none !important;
+}
+
+#hero-search-section input { color: #10162f !important; }
+
+#hero-search-section .bg-primary-container {
+  background: #ffd300 !important;
+  color: #10162f !important;
+}
+
+#hero-search-section .rounded-full {
+  border-radius: 3px !important;
+}
+
+main section > .bg-surface-container-lowest,
+main section > div.bg-surface-container-lowest {
+  border: 1px solid #10162f !important;
+  border-radius: 8px !important;
+  box-shadow: 6px 6px 0 #10162f !important;
+}
+
+main .rounded-3xl { border-radius: 8px !important; }
+main .rounded-2xl { border-radius: 6px !important; }
+main .rounded-xl { border-radius: 4px !important; }
+
+button {
+  font-weight: 600;
+}
+
+button.bg-primary,
+button.bg-primary-container {
+  border: 1px solid #10162f;
+}
+
+button.bg-primary:hover,
+button.bg-primary-container:hover {
+  background: #3a10e5 !important;
+  color: #fff !important;
+}
+
+input, textarea, select {
+  border-color: #10162f !important;
+  border-radius: 3px !important;
+}
+
+footer {
+  background: #10162f !important;
+  color: #fff !important;
+  border-top: 5px solid #ffd300 !important;
+}
+
+footer a, footer span { color: #fff !important; }

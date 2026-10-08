@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <meta content="web_standard" name="shell-type"/>
+    <title>AirExpo</title>
+    <meta name="description" content="Precision atmospheric health engine leveraging real-time satellite imagery and global weather databases." />
+    <meta property="og:title" content="AirExpo" />
+    <meta property="og:description" content="Precision atmospheric health engine leveraging real-time satellite imagery and global weather databases." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+    <style>
+      @layer base {
+        html, body { margin: 0; padding: 0; }
+        body { overscroll-behavior: none; }
+      }
+      ::-webkit-scrollbar { display: none; }
+
+      /* Custom Keyframe Animations & Micro-Interactions */
+      @keyframes breathe-ring {
+        0%, 100% {
+          transform: scale(1);
+          opacity: 0.9;
+          box-shadow: 0 0 0 0 rgba(192, 66, 93, 0.35);
+        }
+        50% {
+          transform: scale(1.045);
+          opacity: 1;
+          box-shadow: 0 0 24px 8px rgba(192, 66, 93, 0.2);
+        }
+      }
+
+      .animate-breathe {
+        animation: breathe-ring 3.8s ease-in-out infinite;
+      }
+
+      @keyframes floatParticle {
+        0% { transform: translateY(0px) translateX(0px); opacity: 0.25; }
+        50% { transform: translateY(-18px) translateX(12px); opacity: 0.65; }
+        100% { transform: translateY(0px) translateX(0px); opacity: 0.25; }
+      }
+
+      .particle-drift-1 { animation: floatParticle 8s ease-in-out infinite; }
+      .particle-drift-2 { animation: floatParticle 11s ease-in-out infinite 2s; }
+      .particle-drift-3 { animation: floatParticle 9.5s ease-in-out infinite 4s; }
+
+      @keyframes growUp {
+        from {
+          transform: scaleY(0);
+          opacity: 0.3;
+        }
+        to {
+          transform: scaleY(1);
+          opacity: 1;
+        }
+      }
+
+      .grow-bar {
+        transform-origin: bottom;
+        animation: growUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+
+      @keyframes pulseGlow {
+        0%, 100% {
+          border-color: rgba(0, 109, 56, 0.25);
+          box-shadow: 0 0 0 0 rgba(0, 109, 56, 0.15);
+        }
+        50% {
+          border-color: rgba(0, 109, 56, 0.75);
+          box-shadow: 0 0 16px 2px rgba(138, 246, 169, 0.45);
+        }
+      }
+
+      .pulse-best-window {
+        animation: pulseGlow 2.8s infinite ease-in-out;
+      }
+
+      /* Route SVG draw animation */
+      @keyframes dashTravel {
+        to {
+          stroke-dashoffset: -40;
+        }
+      }
+      .animated-route-flow {
+        stroke-dasharray: 8 6;
+        animation: dashTravel 1.6s linear infinite;
+      }
+
+      /* Sound wave equalizer */
+      @keyframes eqBar1 { 0%, 100% { height: 4px; } 50% { height: 16px; } }
+      @keyframes eqBar2 { 0%, 100% { height: 14px; } 50% { height: 6px; } }
+      @keyframes eqBar3 { 0%, 100% { height: 8px; } 50% { height: 15px; } }
+
+      .eq-1 { animation: eqBar1 0.7s infinite ease-in-out; }
+      .eq-2 { animation: eqBar2 0.5s infinite ease-in-out; }
+      .eq-3 { animation: eqBar3 0.8s infinite ease-in-out; }
+
+      /* Micro transition utilities */
+      .persona-btn, .mode-pill, .route-card, .sensor-tile {
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .leaflet-container {
+        font-family: inherit;
+        background: #e2e8f0;
+      }
+    </style>
+  </head>
+  <body class="bg-[#f6faff] text-[#0c1d28] antialiased min-h-screen flex flex-col selection:bg-[#0b7a8a] selection:text-[#dcf8ff]">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
