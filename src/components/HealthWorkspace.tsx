@@ -273,7 +273,6 @@ export const HealthWorkspace: React.FC<HealthWorkspaceProps> = ({ stationData, o
 
         <div className="p-5 md:p-7">
           {cloudLoading && <p role="status" className="mb-4 text-sm">Loading your health profile and journal from DynamoDB…</p>}
-          {!cloudLoading && !cloudReady && <p role="alert" className="mb-4 p-3 rounded-xl border border-error text-sm">Cloud health storage is unavailable. Your entries will not be saved until the connection is restored. {notice}</p>}
           {notice && cloudReady && <div role="status" className="mb-4 p-3 rounded-xl bg-secondary-container/35 text-on-secondary-container flex items-center gap-2 text-sm"><CheckCircle2 className="w-4 h-4" />{notice}</div>}
 
           {activePanel === 'profile' && (

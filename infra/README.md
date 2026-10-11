@@ -50,6 +50,15 @@ build`; output directory: `dist`.
 
 ### Connect hosted storage and Health Assistant
 
+The route planner also uses the SAM API: `/api/route-geocode`, `/api/routes`,
+and `/api/route-air-quality`. Deploy the updated Lambda and set
+`VITE_ROUTE_API_URL` to the stack's `ApiUrl` in Amplify Hosting, or leave it
+empty to reuse `VITE_STORAGE_API_URL`. These endpoints require the same Cognito
+session as storage. Set `OPENROUTESERVICE_API_KEY` on the Lambda for production
+routing; the shared implementation uses a public development service when this
+key is absent. Keep the key server-side. Rebuild the frontend after setting the
+API URL; configuring only the frontend does not deploy these Lambda routes.
+
 Amplify's static frontend build does not start `server.ts`. Without a separately
 deployed backend or a same-origin API proxy, `/api/cloud/*` requests go to the
 static website and storage/chat cannot work.

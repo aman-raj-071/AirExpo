@@ -1,4 +1,5 @@
 import type { PlannedRoute } from '../components/GoogleJoggingMap';
+import { routeRequest } from './routeApi';
 
 export async function sampleRouteAirQuality(routes: PlannedRoute[]): Promise<PlannedRoute[]> {
   const checkedAt = new Date().toISOString();
@@ -10,9 +11,8 @@ export async function sampleRouteAirQuality(routes: PlannedRoute[]): Promise<Pla
       const key = `${point.lat.toFixed(4)},${point.lon.toFixed(4)}`;
       if (!samples.has(key)) samples.set(key, (async () => {
         try {
-          const res = await fetch(`/api/route-air-quality?lat=${point.lat}&lon=${point.lon}`, { cache: 'no-store', signal: AbortSignal.timeout(12000) });
-          const data = await res.json();
-          return res.ok && data.success ? data.current : null;
+          const data = await routeRequest(`/api/route-air-quality?lat=${point.lat}&lon=${point.lon}`, { cache: 'no-store', signal: AbortSignal.timeout(12000) });
+          return data.current;
         } catch { return null; }
       })());
       return samples.get(key)!;

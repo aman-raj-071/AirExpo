@@ -1,5 +1,6 @@
 import { exchangeCodeHandler } from './exchangeCode.mjs';
 import { cloudHandler } from './cloud.mjs';
+import { routeApi } from './routeApi.mjs';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 const s3 = new S3Client({});
@@ -39,6 +40,8 @@ export async function handler(event) {
   if (cloudResult) return cloudResult;
   const userId = userIdFrom(event);
   if (!userId) return response(401, { error: 'Authenticated user identity is required.' });
+  const routeResult = await routeApi(event);
+  if (routeResult) return routeResult;
   const method = event.requestContext?.http?.method;
   const path = event.rawPath || '';
 

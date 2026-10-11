@@ -26,6 +26,7 @@ import { MountainBackdrop, DayPeriod } from './components/MountainBackdrop';
 import { sampleRouteAirQuality, recommendRoute, isGoodRoute } from './services/routeAirQuality';
 import { translateDocument } from './services/i18n';
 import { cloudRequest } from './services/cloudStorage';
+import { routeRequest } from './services/routeApi';
 
 // Default initial location: Rohini, Delhi
 const INITIAL_LOCATION: LocationInfo = {
@@ -652,9 +653,7 @@ export default function App({ onHome, onSignOut, onProfileConsumed, initialProfi
       if (Math.abs(lat) > 90 || Math.abs(lon) > 180) throw new Error('Latitude must be between −90 and 90; longitude between −180 and 180.');
       return { lat, lon };
     }
-    const response = await fetch(`/api/route-geocode?q=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(15000) });
-    const data = await response.json();
-    if (!response.ok || !data.success) throw new Error(data.error || 'Could not search for this place.');
+    const data = await routeRequest(`/api/route-geocode?q=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(15000) });
     if (data.results.length > 1) {
       setRouteChoices({ field, results: data.results });
       throw new Error(`Choose the correct ${field} from the matching places below, then find routes again.`);
@@ -678,13 +677,7 @@ export default function App({ onHome, onSignOut, onProfileConsumed, initialProfi
       if (!origin) throw new Error(`Could not find origin “${routeOrigin}”. Enter a place name or latitude, longitude.`);
       if (!destination) throw new Error(`Could not find destination “${routeDestination}”. Enter a place name or latitude, longitude.`);
       setRouteOriginPoint(origin); setRouteDestinationPoint(destination);
-      const response = await fetch('/api/routes', { method: 'POST', signal: AbortSignal.timeout(25000), headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ origin, destination, mode: routeMode }) });
-      const responseText = await response.text();
-      let data: any;
-      try { data = responseText ? JSON.parse(responseText) : null; }
-      catch { throw new Error(`Routing service returned an invalid response (HTTP ${response.status}). Check that the app server is running and routing is configured.`); }
-      if (!data) throw new Error(`Routing service returned an empty response (HTTP ${response.status}). Restart the app server and check its routing configuration.`);
-      if (!response.ok || !data.success) throw new Error(data?.error || `Could not retrieve routes (HTTP ${response.status}).`);
+      const data = await routeRequest('/api/routes', { method: 'POST', signal: AbortSignal.timeout(25000), headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ origin, destination, mode: routeMode }) });
       const routes: PlannedRoute[] = data.routes;
       if (!Array.isArray(routes) || !routes.length) throw new Error('No route was found. Try a nearby street or another travel mode.');
       if (revision !== routeRevision.current) return;
