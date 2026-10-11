@@ -390,10 +390,8 @@ footer a, footer span { color: #fff !important; }
   height: calc(4rem + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
 }
-.dashboard-preview { max-width: calc(100vw - 2rem); }
 @media (max-width: 1023px) {
   .dashboard > main { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
-  .dashboard-preview { bottom: calc(5rem + env(safe-area-inset-bottom)); }
 }
 @media (max-width: 639px) {
   .dashboard .font-display-hero { font-size: clamp(32px, 9vw, 44px); line-height: 1.1; }
@@ -411,5 +409,4 @@ footer a, footer span { color: #fff !important; }
   .dashboard .live-air-panel #timeline-section { padding: .75rem; }
   .dashboard .live-air-panel #timeline-section button { min-height: 0; }
   .dashboard .live-air-panel #timeline-section .flex.justify-between > span { flex: 1; text-align: center; }
-  .dashboard-preview { position: relative; bottom: auto; right: auto; align-self: flex-end; margin: 1rem; }
 }

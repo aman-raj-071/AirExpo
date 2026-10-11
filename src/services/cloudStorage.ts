@@ -1,6 +1,9 @@
 import { fetchAuthSession } from 'aws-amplify/auth';
 const base=import.meta.env.VITE_STORAGE_API_URL?.trim().replace(/\/+$/,'') || '/api/cloud';
-const backendSetupMessage = 'The cloud API is unavailable. Deploy the AirExpo backend, set VITE_STORAGE_API_URL to its API URL in Amplify Hosting, and rebuild the frontend. If using a same-origin API proxy, check its /api/cloud routing.';
+const localCloudApi = base === '/api/cloud' && ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+const backendSetupMessage = localCloudApi
+  ? 'The local cloud API returned a website page instead of JSON. Run npm run dev from the AirExpo folder and open http://localhost:3000. Vite preview serves only the frontend and cannot run cloud storage.'
+  : 'The cloud API returned a non-JSON response. Check the deployed AirExpo backend, VITE_STORAGE_API_URL in Amplify Hosting, and any /api/cloud proxy routing. Rebuild the frontend after changing its API URL.';
 
 async function readCloudResponse(response: Response) {
   const contentType = response.headers.get('content-type') || '';

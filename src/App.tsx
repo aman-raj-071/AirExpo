@@ -131,7 +131,6 @@ export default function App({ onHome, onSignOut, onProfileConsumed, initialProfi
     setStationData(null);
     setDiagnosticReport(null);
     setSelectedTimelineHour(null);
-    setScenarioAqi(null);
     setIsLoading(true);
     setIsLocating(false);
     setIsAnalyzingLocation(false);
@@ -168,9 +167,6 @@ export default function App({ onHome, onSignOut, onProfileConsumed, initialProfi
   const [settingsCloudReady, setSettingsCloudReady] = useState(false);
   const [settingsMigrationPending, setSettingsMigrationPending] = useState(false);
   const [settingsStatus, setSettingsStatus] = useState('Loading account settings from DynamoDB…');
-  const [offlineNotice, setOfflineNotice] = useState<boolean>(false);
-  const [demoMenuOpen, setDemoMenuOpen] = useState<boolean>(false);
-  const [scenarioAqi, setScenarioAqi] = useState<number | null>(null);
   const [scheduledAlertNotice, setScheduledAlertNotice] = useState<string | null>(null);
   const [plannedRoutes, setPlannedRoutes] = useState<PlannedRoute[]>([]);
   const [routeOriginPoint, setRouteOriginPoint] = useState<Coordinates | null>(null);
@@ -577,7 +573,7 @@ export default function App({ onHome, onSignOut, onProfileConsumed, initialProfi
   );
 
   // Derived telemetry and activity advice
-  const currentAqi = scenarioAqi ?? stationData?.currentAqi ?? 0;
+  const currentAqi = stationData?.currentAqi ?? 0;
   const timeBasedGreeting = getTimeBasedGreeting(stationData?.location.timezone ?? currentLocation.timezone, greetingClock);
   const mountainPeriod: DayPeriod = timeBasedGreeting === 'Good morning' ? 'morning' : timeBasedGreeting === 'Good afternoon' ? 'afternoon' : timeBasedGreeting === 'Good evening' ? 'evening' : 'night';
   const pm25Val = stationData?.pollutants.pm2_5?.value;
@@ -819,114 +815,6 @@ export default function App({ onHome, onSignOut, onProfileConsumed, initialProfi
               </button>
             </div>
           )}
-          {/* SIMULATION FLOATING DOCK (Bottom Right) */}
-          <aside className="dashboard-preview fixed bottom-20 right-4 z-30 flex flex-col items-end gap-space-xs pointer-events-auto">
-            {demoMenuOpen && (
-              <div className="flex flex-col gap-space-xs p-space-sm bg-surface-container-lowest/95 backdrop-blur-md rounded-xl shadow-xl border-0 text-label-md transition-all duration-300">
-                <div className="flex items-center justify-between pb-space-xs">
-                  <span className="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider font-semibold">
-                    AQI scenario preview
-                  </span>
-                  <button
-                    onClick={() => setDemoMenuOpen(false)}
-                    className="text-on-surface-variant hover:text-on-surface p-space-xs transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">close</span>
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-space-xs">
-                  <button
-                    onClick={() => {
-                      if (stationData) {
-                        setScenarioAqi(42);
-                      }
-                    }}
-                    className="px-space-sm py-space-xs rounded bg-surface-container text-left hover:bg-secondary-container transition-all flex items-center gap-space-xs text-on-surface active:scale-95"
-                  >
-                    <span className="w-2.5 h-2.5 rounded-full bg-secondary"></span> <span>Good (42)</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (stationData) {
-                        setScenarioAqi(125);
-                      }
-                    }}
-                    className="px-space-sm py-space-xs rounded bg-surface-container text-left hover:bg-surface-variant transition-all flex items-center gap-space-xs text-on-surface active:scale-95"
-                  >
-                    <span className="w-2.5 h-2.5 rounded-full bg-primary"></span> <span>Moderate (125)</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (stationData) {
-                        setScenarioAqi(238);
-                      }
-                    }}
-                    className="px-space-sm py-space-xs rounded bg-surface-container text-left hover:bg-error-container transition-all flex items-center gap-space-xs text-on-surface active:scale-95"
-                  >
-                    <span className="w-2.5 h-2.5 rounded-full bg-tertiary"></span> <span>Poor (238)</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (stationData) {
-                        setScenarioAqi(412);
-                      }
-                    }}
-                    className="px-space-sm py-space-xs rounded bg-surface-container text-left hover:bg-error-container transition-all flex items-center gap-space-xs text-on-surface active:scale-95"
-                  >
-                    <span className="w-2.5 h-2.5 rounded-full bg-error"></span> <span>Severe (412)</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setTelemetryReloadKey((key) => key + 1);
-                    }}
-                    className="col-span-2 py-1 px-2 rounded bg-primary-container text-on-primary font-semibold text-label-caps hover:bg-primary transition-all active:scale-95 text-center mt-1"
-                  >
-                    ↺ Re-fetch Live Planetary Telemetry
-                  </button>
-                </div>
-                <div className="pt-space-xs flex gap-space-xs">
-                  <button
-                    onClick={() => alert('Location access was unavailable. The app will keep using the selected location; you can search for a place or enter coordinates.')}
-                    className="flex-1 py-1 px-2 rounded bg-surface-container-high text-on-surface-variant text-label-caps hover:text-on-surface active:scale-95 transition-all"
-                  >
-                    GPS Denied
-                  </button>
-                  <button
-                    onClick={() => setOfflineNotice(!offlineNotice)}
-                    className="flex-1 py-1 px-2 rounded bg-surface-container-high text-on-surface-variant text-label-caps hover:text-on-surface active:scale-95 transition-all"
-                  >
-                    Network Offline
-                  </button>
-                </div>
-                {scenarioAqi !== null && <div className="max-w-64 text-right text-[11px] text-on-surface-variant">Preview only: AQI {scenarioAqi}. Other live readings and forecasts are unchanged.</div>}
-              </div>
-            )}
-            <button
-              onClick={() => setDemoMenuOpen(!demoMenuOpen)}
-              className="flex items-center gap-space-xs px-space-md py-space-xs bg-primary text-on-primary rounded-full shadow-lg hover:bg-primary-container transition-transform active:scale-95 text-label-md font-label-md"
-              type="button"
-            >
-              <span className="material-symbols-outlined text-[18px]">tune</span>
-              <span>Live Simulation</span>
-            </button>
-          </aside>
-
-          {/* Offline Toast Banner */}
-          {offlineNotice && (
-            <div className="w-full bg-tertiary text-on-tertiary px-margin py-space-xs flex items-center justify-between text-label-md transition-all">
-              <div className="flex items-center gap-space-sm">
-                <span className="material-symbols-outlined text-[18px]">wifi_off</span>
-                <span>Operating on cached atmospheric telemetry from 14 minutes ago. Reconnecting to local CPCB sensor...</span>
-              </div>
-              <button
-                className="text-on-tertiary hover:opacity-80 active:scale-90 transition-transform"
-                onClick={() => setOfflineNotice(false)}
-              >
-                <span className="material-symbols-outlined text-[16px]">close</span>
-              </button>
-            </div>
-          )}
-
           {/* LIVE LOCATION & PROFILE — kept at the top for immediate context */}
           <section className="w-full px-margin-mobile md:px-margin pt-space-lg pb-space-md">
             <div className="monitoring-card relative isolate overflow-hidden rounded-[22px] border border-[#e6dfd4] bg-white px-5 py-5 shadow-[0_12px_32px_rgba(16,22,47,0.08)] md:px-7 md:py-6">
@@ -1269,7 +1157,7 @@ export default function App({ onHome, onSignOut, onProfileConsumed, initialProfi
 
             {/* Air Alerts Config Panel */}
             <div className="lg:col-span-5 space-y-2">
-              <React.Suspense fallback={<div className="min-h-80 rounded-xl bg-surface-container-low animate-pulse" aria-label="Loading air alerts" />}><AirAlerts aqi={scenarioAqi === null ? stationData?.currentAqi ?? null : null} threshold={alertThreshold} setThreshold={setAlertThreshold} location={currentLocation} browserAlertsEnabled={browserAlertsEnabled} onBrowserAlertsChange={setBrowserAlertsEnabled} /></React.Suspense>
+              <React.Suspense fallback={<div className="min-h-80 rounded-xl bg-surface-container-low animate-pulse" aria-label="Loading air alerts" />}><AirAlerts aqi={stationData?.currentAqi ?? null} threshold={alertThreshold} setThreshold={setAlertThreshold} location={currentLocation} browserAlertsEnabled={browserAlertsEnabled} onBrowserAlertsChange={setBrowserAlertsEnabled} /></React.Suspense>
               {settingsStatus && <p role="status" className="text-xs text-on-surface-variant">{settingsStatus}</p>}
             </div>
 
