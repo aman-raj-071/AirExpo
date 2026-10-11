@@ -1,5 +1,6 @@
 import { fetchAuthSession } from 'aws-amplify/auth';
-const base=import.meta.env.VITE_STORAGE_API_URL?.trim().replace(/\/+$/,'') || '/api/cloud';
+const isLocalHost = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+const base=import.meta.env.VITE_STORAGE_API_URL?.trim().replace(/\/+$/,'') || (isLocalHost ? '/api/cloud' : 'https://xsvjrx04tl.execute-api.us-east-1.amazonaws.com/api/cloud');
 const localCloudApi = base === '/api/cloud' && ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
 const backendSetupMessage = localCloudApi
   ? 'The local cloud API returned a website page instead of JSON. Run npm run dev from the AirExpo folder and open http://localhost:3000. Vite preview serves only the frontend and cannot run cloud storage.'

@@ -23,9 +23,6 @@ const ACCEPTED_TYPES = ['application/pdf', 'image/png', 'image/jpeg'];
 
 function errorMessage(error: unknown) {
   const msg = error instanceof Error ? error.message : 'Could not complete this request.';
-  if (/configured|Deploy|configuration|503|storage is not configured/i.test(msg)) {
-    return 'Document storage is not ready on the server yet (DynamoDB table or S3 bucket missing). Uploads and retrieval will work once the backend tables are deployed.';
-  }
   return msg;
 }
 
