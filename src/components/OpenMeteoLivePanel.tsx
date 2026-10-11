@@ -31,7 +31,7 @@ export const OpenMeteoLivePanel: React.FC<Props> = ({
       hour = Number(new Intl.DateTimeFormat('en-US', { timeZone: data?.location.timezone || location.timezone, hour: '2-digit', hourCycle: 'h23' }).format(now));
     } catch { /* Retain device time when a stored timezone is invalid. */ }
     const period = hour < 6 ? 'late night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
-    if (aqi === undefined) return { title: 'Waiting for live conditions', body: 'Advice will update when Openâ€‘Meteo responds.', actions: ['Keep this page open.', 'Refresh if loading continues.', 'Use your usual health precautions.'] };
+    if (aqi === undefined) return { title: 'Waiting for live conditions', body: 'Advice will update when Open‑Meteo responds.', actions: ['Keep this page open.', 'Refresh if loading continues.', 'Use your usual health precautions.'] };
     if (aqi <= 50) return { title: `Good air for ${period} activity`, body: `U.S. AQI ${aqi} is low for the selected coordinates.`, actions: ['Normal outdoor activity is suitable.', 'Ventilate while the reading remains low.', 'Check UV before prolonged daylight activity.'] };
     if (aqi <= 100) return { title: `Use a measured pace this ${period}`, body: `U.S. AQI ${aqi} is moderate; unusually sensitive people may notice symptoms.`, actions: ['Prefer moderate rather than intense outdoor exercise.', `For the ${personaName.toLowerCase()} profile, shorten activity if irritation begins.`, data?.weather.windSpeed == null ? 'Wind data is unavailable for this forecast.' : data.weather.windSpeed < 6 ? 'Low wind may allow pollutants to accumulate.' : 'Wind is supporting pollutant dispersion.'] };
     if (aqi <= 150) return { title: `Sensitive users should reduce exposure`, body: `U.S. AQI ${aqi} is unhealthy for sensitive groups.`, actions: ['Shorten strenuous outdoor sessions.', 'Keep rescue medication available if prescribed.', 'Recheck the next hourly forecast before going out.'] };
@@ -51,15 +51,15 @@ export const OpenMeteoLivePanel: React.FC<Props> = ({
       <div className="space-y-6">
         <header className="hidden">
           <div>
-            <span className="font-label-caps uppercase text-primary flex items-center gap-2"><CloudSun className="w-4 h-4" /> Openâ€‘Meteo live model feed</span>
+            <span className="font-label-caps uppercase text-primary flex items-center gap-2"><CloudSun className="w-4 h-4" /> Open‑Meteo live model feed</span>
             <h2 className="font-headline-lg text-headline-lg mt-1">Coordinate-specific air quality & weather</h2>
-            <p className="font-label-md mt-1">{location.name}, {location.country} Â· {location.latitude.toFixed(4)}Â°, {location.longitude.toFixed(4)}Â°</p>
-            <p className="text-sm text-on-surface-variant mt-1">Overall and pollutant indices use the U.S. AQI scale. Concentrations retain the units supplied by Openâ€‘Meteo.</p>
+            <p className="font-label-md mt-1">{location.name}, {location.country} · {location.latitude.toFixed(4)}°, {location.longitude.toFixed(4)}°</p>
+            <p className="text-sm text-on-surface-variant mt-1">Overall and pollutant indices use the U.S. AQI scale. Concentrations retain the units supplied by Open‑Meteo.</p>
           </div>
-          <button onClick={onRefresh} disabled={loading} className="px-4 py-2 border border-primary rounded flex items-center gap-2 font-label-md disabled:opacity-50"><RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh Openâ€‘Meteo</button>
+          <button onClick={onRefresh} disabled={loading} className="px-4 py-2 border border-primary rounded flex items-center gap-2 font-label-md disabled:opacity-50"><RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh Open‑Meteo</button>
         </header>
 
-        {loading && !data && <div className="p-10 flex items-center justify-center gap-3"><Loader2 className="w-5 h-5 animate-spin" /> Fetching current air and weather dataâ€¦</div>}
+        {loading && !data && <div className="p-10 flex items-center justify-center gap-3"><Loader2 className="w-5 h-5 animate-spin" /> Fetching current air and weather data…</div>}
         {data && (
           <div>
             <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#fff5f7] via-[#f8c8d3] to-[#e9557c] px-6 py-7 md:px-10 md:py-9 text-[#262636] shadow-sm">
@@ -78,8 +78,8 @@ export const OpenMeteoLivePanel: React.FC<Props> = ({
                   </div>
 
                   <div className="grid grid-cols-2 gap-5 mt-7 max-w-xl">
-                    <p className="text-lg text-[#5d6670]"><strong>PM2.5 :</strong> <span className="text-[#202638] font-semibold">{pm25?.value ?? 'â€”'}</span> <span className="text-xs font-semibold">{pm25?.unit}</span></p>
-                    <p className="text-lg text-[#5d6670]"><strong>PM10 :</strong> <span className="text-[#202638] font-semibold">{pm10?.value ?? 'â€”'}</span> <span className="text-xs font-semibold">{pm10?.unit}</span></p>
+                    <p className="text-lg text-[#5d6670]"><strong>PM2.5 :</strong> <span className="text-[#202638] font-semibold">{pm25?.value ?? '—'}</span> <span className="text-xs font-semibold">{pm25?.unit}</span></p>
+                    <p className="text-lg text-[#5d6670]"><strong>PM10 :</strong> <span className="text-[#202638] font-semibold">{pm10?.value ?? '—'}</span> <span className="text-xs font-semibold">{pm10?.unit}</span></p>
                   </div>
 
                   <div className="mt-7 max-w-[450px]">
@@ -89,7 +89,7 @@ export const OpenMeteoLivePanel: React.FC<Props> = ({
                       <span className="absolute -top-1.5 h-4 w-4 rounded-full border-4 border-white shadow" style={{ left: `calc(${Math.min(100, data.currentAqi / 3)}% - 8px)`, backgroundColor: data.aqiCategory.color }} />
                     </div>
                     <div className="grid grid-cols-7 text-xs sm:text-sm text-[#66515a] mt-2"><span>0</span><span>50</span><span>100</span><span>150</span><span>200</span><span>300</span><span className="text-right">301+</span></div>
-                    {selectedBand && <button type="button" onClick={() => setSelectedBand(null)} className="mt-2 text-xs bg-white/45 rounded-full px-3 py-1 hover:bg-white/65">{selectedBand} range selected Â· click to close</button>}
+                    {selectedBand && <button type="button" onClick={() => setSelectedBand(null)} className="mt-2 text-xs bg-white/45 rounded-full px-3 py-1 hover:bg-white/65">{selectedBand} range selected · click to close</button>}
                   </div>
                 </div>
 
@@ -100,22 +100,22 @@ export const OpenMeteoLivePanel: React.FC<Props> = ({
 
                 <div className="flex items-center justify-center lg:justify-end">
                   <div className="relative w-full rounded-[1.4rem] border border-white/70 bg-white/25 backdrop-blur-sm overflow-hidden shadow-sm">
-                    <button onClick={onRefresh} disabled={loading} title="Refresh Openâ€‘Meteo" className="absolute right-4 top-4 w-10 h-10 rounded-full bg-white/70 flex items-center justify-center disabled:opacity-50"><RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /></button>
+                    <button onClick={onRefresh} disabled={loading} title="Refresh Open‑Meteo" className="absolute right-4 top-4 w-10 h-10 rounded-full bg-white/70 flex items-center justify-center disabled:opacity-50"><RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /></button>
                     <div className="px-7 py-7 flex items-center gap-6 border-b border-white/60">
-                      <span className="text-5xl">{now.getHours() >= 18 || now.getHours() < 6 ? 'ðŸŒ™' : 'â˜€ï¸'}</span>
-                      <span className="text-4xl font-semibold tabular-nums">{data.weather.temperature ?? 'â€”'}<small className="text-lg ml-1">{data.weather.temperature == null ? '' : 'Â°C'}</small></span>
+                      <span className="text-5xl">{now.getHours() >= 18 || now.getHours() < 6 ? '🌙' : '☀️'}</span>
+                      <span className="text-4xl font-semibold tabular-nums">{data.weather.temperature ?? '—'}<small className="text-lg ml-1">{data.weather.temperature == null ? '' : '°C'}</small></span>
                       <span className="text-lg">{data.weather.weatherDescription.replace('Troposphere','').trim()}</span>
                     </div>
                     <div className="grid grid-cols-3 divide-x divide-[#c6909e] px-4 py-4">
-                      <button type="button" onClick={() => setSelectedWeather('Humidity reflects moisture in the air.')} className="px-3 text-left hover:bg-white/20 rounded transition"><p className="text-sm">ðŸ’§ Humidity</p><strong className="text-sm">{data.weather.humidity == null ? 'â€”' : `${data.weather.humidity} %`}</strong></button>
-                      <button type="button" onClick={() => setSelectedWeather('Wind controls how quickly pollutants disperse.')} className="px-3 text-left hover:bg-white/20 rounded transition"><p className="text-sm">ðŸŒ¬ Wind Speed</p><strong className="text-sm">{data.weather.windSpeed == null ? 'â€”' : `${data.weather.windSpeed} km/h`}</strong></button>
-                      <button type="button" onClick={() => setSelectedWeather('UV exposure changes throughout the day.')} className="px-3 text-left hover:bg-white/20 rounded transition"><p className="text-sm">â˜€ UV Index</p><strong className="text-sm">{data.weather.uvIndex ?? 'â€”'}</strong></button>
+                      <button type="button" onClick={() => setSelectedWeather('Humidity reflects moisture in the air.')} className="px-3 text-left hover:bg-white/20 rounded transition"><p className="text-sm">💧 Humidity</p><strong className="text-sm">{data.weather.humidity == null ? '—' : `${data.weather.humidity} %`}</strong></button>
+                      <button type="button" onClick={() => setSelectedWeather('Wind controls how quickly pollutants disperse.')} className="px-3 text-left hover:bg-white/20 rounded transition"><p className="text-sm">🌬 Wind Speed</p><strong className="text-sm">{data.weather.windSpeed == null ? '—' : `${data.weather.windSpeed} km/h`}</strong></button>
+                      <button type="button" onClick={() => setSelectedWeather('UV exposure changes throughout the day.')} className="px-3 text-left hover:bg-white/20 rounded transition"><p className="text-sm">☀ UV Index</p><strong className="text-sm">{data.weather.uvIndex ?? '—'}</strong></button>
                     </div>
-                    {selectedWeather && <button type="button" onClick={() => setSelectedWeather(null)} className="w-full border-t border-white/50 bg-white/20 px-5 py-2 text-left text-xs hover:bg-white/35">{selectedWeather} Â· click to close</button>}
+                    {selectedWeather && <button type="button" onClick={() => setSelectedWeather(null)} className="w-full border-t border-white/50 bg-white/20 px-5 py-2 text-left text-xs hover:bg-white/35">{selectedWeather} · click to close</button>}
                   </div>
                 </div>
               </div>
-              <div className="relative mt-5 text-xs text-[#6b4652]">{location.name}, {location.country} Â· Openâ€‘Meteo/CAMS Â· Updated {data.lastUpdated}</div>
+              <div className="relative mt-5 text-xs text-[#6b4652]">{location.name}, {location.country} · Open‑Meteo/CAMS · Updated {data.lastUpdated}</div>
             </div>
 
             <div className="mt-6 bg-surface-container-lowest border border-primary rounded-2xl p-5 md:p-7 shadow-sm">
@@ -125,12 +125,12 @@ export const OpenMeteoLivePanel: React.FC<Props> = ({
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-7">
                   <div>
                     <span className="font-label-caps text-primary uppercase">Diurnal exposure modeling</span>
-                    <h3 className="font-headline-md text-2xl mt-1">Past 24 Hours Â· U.S. AQI</h3>
+                    <h3 className="font-headline-md text-2xl mt-1">Past 24 Hours · U.S. AQI</h3>
                     <p className="text-sm text-on-surface-variant mt-1">Hourly modeled history for {location.name}, ending at the latest available hour. Times shown in {data.location.timezone || "local time"}.</p>
                   </div>
                 <div className="flex flex-wrap gap-3 lg:ml-auto lg:w-[360px] lg:justify-end">
-                    {forecastMin && <div className="rounded-xl border border-[#e1e3ed] bg-white p-2 flex items-center gap-3 shadow-sm"><strong className="rounded-lg bg-[#f4c628] text-white text-xl px-3 py-2">{forecastMin.aqi}</strong><div><span className="block text-xs text-[#62a83d]">â†“ Min. AQI (US)</span><span className="text-[10px] text-on-surface-variant">â—· {forecastMin.dayLabel} {forecastMin.formattedTime}</span></div></div>}
-                    {forecastMax && <div className="rounded-xl border border-[#e1e3ed] bg-white p-2 flex items-center gap-3 shadow-sm"><strong className="rounded-lg bg-[#ed4f78] text-white text-xl px-3 py-2">{forecastMax.aqi}</strong><div><span className="block text-xs text-[#ed657a]">â†‘ Max. AQI (US)</span><span className="text-[10px] text-on-surface-variant">â—· {forecastMax.dayLabel} {forecastMax.formattedTime}</span></div></div>}
+                    {forecastMin && <div className="rounded-xl border border-[#e1e3ed] bg-white p-2 flex items-center gap-3 shadow-sm"><strong className="rounded-lg bg-[#f4c628] text-white text-xl px-3 py-2">{forecastMin.aqi}</strong><div><span className="block text-xs text-[#62a83d]">↓ Min. AQI (US)</span><span className="text-[10px] text-on-surface-variant">◷ {forecastMin.dayLabel} {forecastMin.formattedTime}</span></div></div>}
+                    {forecastMax && <div className="rounded-xl border border-[#e1e3ed] bg-white p-2 flex items-center gap-3 shadow-sm"><strong className="rounded-lg bg-[#ed4f78] text-white text-xl px-3 py-2">{forecastMax.aqi}</strong><div><span className="block text-xs text-[#ed657a]">↑ Max. AQI (US)</span><span className="text-[10px] text-on-surface-variant">◷ {forecastMax.dayLabel} {forecastMax.formattedTime}</span></div></div>}
                   </div>
                 </div>
                 <div className="grid grid-cols-[18px_30px_minmax(0,1fr)] gap-x-2 sm:gap-x-3">
@@ -154,15 +154,15 @@ export const OpenMeteoLivePanel: React.FC<Props> = ({
 
             <div className="mt-7">
               <div className="hidden">
-                <h3 className="font-title-md flex items-center gap-2"><CloudSun className="w-5 h-5 text-primary" /> Current Openâ€‘Meteo weather</h3>
+                <h3 className="font-title-md flex items-center gap-2"><CloudSun className="w-5 h-5 text-primary" /> Current Open‑Meteo weather</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
                   {[
-                    ['Temperature', data.weather.temperature == null ? 'â€”' : `${data.weather.temperature}Â°C`, data.weather.weatherDescription],
-                    ['Humidity', data.weather.humidity == null ? 'â€”' : `${data.weather.humidity}%`, 'Relative humidity at 2 m'],
-                    ['Wind', data.weather.windSpeed == null ? 'â€”' : `${data.weather.windSpeed} km/h`, data.weather.windDirection == null ? 'Direction unavailable' : `${data.weather.windDirection}Â° direction`],
-                    ['Pressure', data.weather.surfacePressure == null ? 'â€”' : `${data.weather.surfacePressure} hPa`, 'Surface pressure'],
-                    ['Cloud cover', data.weather.cloudCover == null ? 'â€”' : `${data.weather.cloudCover}%`, 'Total cloud cover'],
-                    ['UV index', `${data.weather.uvIndex ?? 'â€”'}`, data.weather.uvIndex == null ? 'Unavailable' : data.weather.uvIndex >= 6 ? 'Protection advised' : 'Lower exposure'],
+                    ['Temperature', data.weather.temperature == null ? '—' : `${data.weather.temperature}°C`, data.weather.weatherDescription],
+                    ['Humidity', data.weather.humidity == null ? '—' : `${data.weather.humidity}%`, 'Relative humidity at 2 m'],
+                    ['Wind', data.weather.windSpeed == null ? '—' : `${data.weather.windSpeed} km/h`, data.weather.windDirection == null ? 'Direction unavailable' : `${data.weather.windDirection}° direction`],
+                    ['Pressure', data.weather.surfacePressure == null ? '—' : `${data.weather.surfacePressure} hPa`, 'Surface pressure'],
+                    ['Cloud cover', data.weather.cloudCover == null ? '—' : `${data.weather.cloudCover}%`, 'Total cloud cover'],
+                    ['UV index', `${data.weather.uvIndex ?? '—'}`, data.weather.uvIndex == null ? 'Unavailable' : data.weather.uvIndex >= 6 ? 'Protection advised' : 'Lower exposure'],
                   ].map(([label, value, note]) => <div key={label} className="bg-surface-container-lowest border border-primary/20 rounded-lg p-3"><div className="text-xs font-label-caps text-on-surface-variant">{label}</div><div className="text-2xl font-bold mt-2 tabular-nums">{value}</div><div className="text-xs text-on-surface-variant mt-1">{note}</div></div>)}
                 </div>
               </div>
@@ -170,7 +170,7 @@ export const OpenMeteoLivePanel: React.FC<Props> = ({
                 <div className="flex items-center justify-between gap-3"><span className="font-label-caps uppercase text-secondary flex items-center gap-2"><Sparkles className="w-4 h-4" /> AI exposure advisor</span><span className="text-xs text-white/70">{now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>
                 <h3 className="text-2xl font-bold mt-3">{advisor.title}</h3><p className="text-sm text-white/75 mt-2">{advisor.body}</p>
                 <div className="mt-5 space-y-3">{advisor.actions.map((action, index) => <div key={action} className="flex gap-3 bg-white/10 rounded-lg p-3"><span className="w-6 h-6 rounded-full bg-secondary text-primary flex items-center justify-center text-xs font-bold shrink-0">{index + 1}</span><p className="text-sm">{action}</p></div>)}</div>
-                <p className="text-[11px] text-white/60 mt-auto pt-4">Updates with location, AQI, weather, profile and time. General guidanceâ€”not a medical diagnosis.</p>
+                <p className="text-[11px] text-white/60 mt-auto pt-4">Updates with location, AQI, weather, profile and time. General guidance—not a medical diagnosis.</p>
               </aside>
             </div>
 

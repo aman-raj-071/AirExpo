@@ -12,7 +12,7 @@ interface Props {
 }
 
 const labels: Record<string, string> = {
-  pm25: 'PM2.5', pm10: 'PM10', no2: 'NOâ‚‚', so2: 'SOâ‚‚', co: 'CO', o3: 'Oâ‚ƒ',
+  pm25: 'PM2.5', pm10: 'PM10', no2: 'NO₂', so2: 'SO₂', co: 'CO', o3: 'O₃',
 };
 
 export const AqicnLivePanel: React.FC<Props> = ({ location, weather, personaName = 'General' }) => {
@@ -92,19 +92,19 @@ export const AqicnLivePanel: React.FC<Props> = ({ location, weather, personaName
             <span className="font-label-caps uppercase text-primary flex items-center gap-2"><Radio className="w-4 h-4" /> Official AQICN live feed</span>
             <h2 className="font-headline-lg text-headline-lg mt-1">Verified station air quality</h2>
             <p className="font-label-md mt-1">Requested location: {location.name}{location.country ? `, ${location.country}` : ''}</p>
-            <p className="text-sm text-on-surface-variant mt-1">Individual pollutants below are AQI indices, not Âµg/mÂ³ or concentration measurements.</p>
+            <p className="text-sm text-on-surface-variant mt-1">Individual pollutants below are AQI indices, not µg/m³ or concentration measurements.</p>
           </div>
           <button onClick={() => setReloadKey((value) => value + 1)} disabled={loading} className="px-4 py-2 border border-primary rounded flex items-center gap-2 font-label-md disabled:opacity-50"><RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh live data</button>
         </div>
 
-        {loading && <div className="p-10 flex items-center justify-center gap-3"><Loader2 className="w-5 h-5 animate-spin" /><span>Loading current AQICN station dataâ€¦</span></div>}
+        {loading && <div className="p-10 flex items-center justify-center gap-3"><Loader2 className="w-5 h-5 animate-spin" /><span>Loading current AQICN station data…</span></div>}
         {!loading && error && <div className="p-7 text-error flex items-start gap-3"><AlertCircle className="w-5 h-5 shrink-0" /><div><strong>Live data unavailable</strong><p className="text-sm mt-1">{error}</p></div></div>}
         {!loading && data && (
           <div className="p-5 md:p-7">
             <div className="grid lg:grid-cols-[0.7fr_1.3fr] gap-6">
               <div className="p-5 bg-primary text-white rounded-xl">
                 <div className="flex items-center gap-2 text-sm"><MapPin className="w-4 h-4 text-secondary" /> {data.station.name}</div>
-                <div className="flex items-end gap-3 mt-5"><span className="text-6xl font-bold tabular-nums">{data.aqi ?? 'â€”'}</span><span className="pb-2 font-label-caps">Overall AQI</span></div>
+                <div className="flex items-end gap-3 mt-5"><span className="text-6xl font-bold tabular-nums">{data.aqi ?? '—'}</span><span className="pb-2 font-label-caps">Overall AQI</span></div>
                 <div className="mt-3 inline-flex px-3 py-1 rounded bg-white text-primary text-sm font-semibold" style={{ borderLeft: `7px solid ${category.color}` }}>{data.aqi === null ? 'Unavailable' : category.label}</div>
                 <div className="mt-5 text-xs text-white/75">Observed: {data.observedAt ? new Date(data.observedAt).toLocaleString() : 'Timestamp unavailable'}</div>
                 <div className="text-xs text-white/75 mt-1">Dominant pollutant: {data.dominantPollutant?.toUpperCase() || 'Unavailable'}</div>
@@ -132,17 +132,17 @@ export const AqicnLivePanel: React.FC<Props> = ({ location, weather, personaName
                     <span className="material-symbols-outlined text-primary">thermostat</span>
                     <h3 className="font-title-md">Surface Atmospheric Mechanics</h3>
                   </div>
-                  <span className="font-label-caps text-xs bg-surface-container px-2 py-1 rounded">Live weather Â· ground model</span>
+                  <span className="font-label-caps text-xs bg-surface-container px-2 py-1 rounded">Live weather · ground model</span>
                 </div>
                 {weather ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
                     {[
-                      ['â˜€ï¸', 'Temp', weather.temperature == null ? 'â€”' : `${Math.round(weather.temperature)}Â°C`, weather.weatherDescription],
-                      ['ðŸ’§', 'Humidity', weather.humidity == null ? 'â€”' : `${Math.round(weather.humidity)}%`, weather.humidity == null ? 'Unavailable' : 'Relative humidity'],
-                      ['ðŸ’¨', 'Wind', weather.windSpeed == null ? 'â€”' : `${Math.round(weather.windSpeed)} km/h`, weather.windSpeed == null ? 'Unavailable' : 'Modeled wind'],
-                      ['â˜ï¸', 'Cloud', weather.cloudCover == null ? 'â€”' : `${Math.round(weather.cloudCover)}%`, weather.weatherDescription],
-                      ['â˜€ï¸', 'UV', weather.uvIndex == null ? 'â€”' : `${weather.uvIndex}`, weather.uvIndex == null ? 'Unavailable' : weather.uvIndex >= 6 ? 'Protection advised' : 'Lower exposure'],
-                      ['ðŸªŸ', 'Venting', (data.aqi ?? 999) > 100 ? 'Close' : 'Open', (data.aqi ?? 999) > 100 ? 'Keep filtered' : 'Brief ventilation is suitable'],
+                      ['☀️', 'Temp', weather.temperature == null ? '—' : `${Math.round(weather.temperature)}°C`, weather.weatherDescription],
+                      ['💧', 'Humidity', weather.humidity == null ? '—' : `${Math.round(weather.humidity)}%`, weather.humidity == null ? 'Unavailable' : 'Relative humidity'],
+                      ['💨', 'Wind', weather.windSpeed == null ? '—' : `${Math.round(weather.windSpeed)} km/h`, weather.windSpeed == null ? 'Unavailable' : 'Modeled wind'],
+                      ['☁️', 'Cloud', weather.cloudCover == null ? '—' : `${Math.round(weather.cloudCover)}%`, weather.weatherDescription],
+                      ['☀️', 'UV', weather.uvIndex == null ? '—' : `${weather.uvIndex}`, weather.uvIndex == null ? 'Unavailable' : weather.uvIndex >= 6 ? 'Protection advised' : 'Lower exposure'],
+                      ['🪟', 'Venting', (data.aqi ?? 999) > 100 ? 'Close' : 'Open', (data.aqi ?? 999) > 100 ? 'Keep filtered' : 'Brief ventilation is suitable'],
                     ].map(([icon, label, value, note]) => (
                       <div key={label} className="bg-surface-container-lowest border border-primary/20 rounded-lg p-3 min-h-28">
                         <div className="flex items-center justify-between gap-2 text-xs font-label-caps text-on-surface-variant"><span>{icon}</span><span>{label}</span></div>
@@ -151,7 +151,7 @@ export const AqicnLivePanel: React.FC<Props> = ({ location, weather, personaName
                       </div>
                     ))}
                   </div>
-                ) : <p className="mt-4 text-sm text-on-surface-variant">Weather telemetry is loadingâ€¦</p>}
+                ) : <p className="mt-4 text-sm text-on-surface-variant">Weather telemetry is loading…</p>}
               </div>
 
               <aside className="rounded-xl bg-primary text-white p-5 flex flex-col" aria-live="polite">
@@ -169,7 +169,7 @@ export const AqicnLivePanel: React.FC<Props> = ({ location, weather, personaName
                     </div>
                   ))}
                 </div>
-                <p className="text-[11px] text-white/60 mt-auto pt-4">Updates automatically when AQI, selected profile, weather, or local time changes. General guidanceâ€”not a medical diagnosis.</p>
+                <p className="text-[11px] text-white/60 mt-auto pt-4">Updates automatically when AQI, selected profile, weather, or local time changes. General guidance—not a medical diagnosis.</p>
               </aside>
             </div>
             <div className="mt-6 pt-4 border-t border-primary/30 text-xs text-on-surface-variant flex flex-wrap gap-x-4 gap-y-1">

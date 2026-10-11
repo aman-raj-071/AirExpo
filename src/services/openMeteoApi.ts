@@ -222,7 +222,7 @@ export async function reverseGeocode(coords: Coordinates): Promise<LocationInfo>
   }
 
   return {
-    name: `Station [${coords.lat.toFixed(3)}Â°, ${coords.lon.toFixed(3)}Â°]`,
+    name: `Station [${coords.lat.toFixed(3)}°, ${coords.lon.toFixed(3)}°]`,
     country: 'Coordinates',
     latitude: coords.lat,
     longitude: coords.lon,
@@ -268,7 +268,7 @@ export async function fetchEnvironmentalData(
   const pm10Val = Number.isFinite(currentAq.pm10) ? Number(currentAq.pm10.toFixed(1)) : null;
   const no2Val = Number.isFinite(currentAq.nitrogen_dioxide) ? Number(currentAq.nitrogen_dioxide.toFixed(1)) : null;
   const o3Val = Number.isFinite(currentAq.ozone) ? Number(currentAq.ozone.toFixed(1)) : null;
-  const coVal = Number.isFinite(currentAq.carbon_monoxide) ? Number((currentAq.carbon_monoxide / 1000).toFixed(2)) : null; // convert to mg/mÂ³
+  const coVal = Number.isFinite(currentAq.carbon_monoxide) ? Number((currentAq.carbon_monoxide / 1000).toFixed(2)) : null; // convert to mg/m³
   const so2Val = Number.isFinite(currentAq.sulphur_dioxide) ? Number(currentAq.sulphur_dioxide.toFixed(1)) : null;
 
   const pollutantStatus = (value: number | null, limits: [number, number, number]): PollutantDetail['status'] => {
@@ -281,9 +281,9 @@ export async function fetchEnvironmentalData(
     pm2_5: {
       code: 'pm2_5',
       name: 'PM2.5',
-      fullName: 'Fine Inhalable Particles (â‰¤2.5 Âµm)',
+      fullName: 'Fine Inhalable Particles (≤2.5 µm)',
       value: pm25Val,
-      unit: 'Âµg/mÂ³',
+      unit: 'µg/m³',
       whoSafeThreshold: 15.0, // WHO 24h guideline
       percentOfLimit: percentOfLimit(pm25Val, 15),
       status: pollutantStatus(pm25Val, [15, 35, 75]),
@@ -292,9 +292,9 @@ export async function fetchEnvironmentalData(
     pm10: {
       code: 'pm10',
       name: 'PM10',
-      fullName: 'Respirable Particulate Matter (â‰¤10 Âµm)',
+      fullName: 'Respirable Particulate Matter (≤10 µm)',
       value: pm10Val,
-      unit: 'Âµg/mÂ³',
+      unit: 'µg/m³',
       whoSafeThreshold: 45.0, // WHO 24h guideline
       percentOfLimit: percentOfLimit(pm10Val, 45),
       status: pollutantStatus(pm10Val, [45, 100, 150]),
@@ -302,10 +302,10 @@ export async function fetchEnvironmentalData(
     },
     no2: {
       code: 'no2',
-      name: 'NOâ‚‚',
+      name: 'NO₂',
       fullName: 'Nitrogen Dioxide',
       value: no2Val,
-      unit: 'Âµg/mÂ³',
+      unit: 'µg/m³',
       whoSafeThreshold: 25.0, // WHO 24h guideline
       percentOfLimit: percentOfLimit(no2Val, 25),
       status: pollutantStatus(no2Val, [25, 50, 100]),
@@ -313,10 +313,10 @@ export async function fetchEnvironmentalData(
     },
     o3: {
       code: 'o3',
-      name: 'Oâ‚ƒ',
+      name: 'O₃',
       fullName: 'Ground-Level Ozone',
       value: o3Val,
-      unit: 'Âµg/mÂ³',
+      unit: 'µg/m³',
       whoSafeThreshold: 100.0, // WHO 8h guideline
       percentOfLimit: percentOfLimit(o3Val, 100),
       status: pollutantStatus(o3Val, [100, 140, 180]),
@@ -327,18 +327,18 @@ export async function fetchEnvironmentalData(
       name: 'CO',
       fullName: 'Carbon Monoxide',
       value: coVal,
-      unit: 'mg/mÂ³',
-      whoSafeThreshold: 4.0, // WHO 24h guideline in mg/mÂ³
+      unit: 'mg/m³',
+      whoSafeThreshold: 4.0, // WHO 24h guideline in mg/m³
       percentOfLimit: percentOfLimit(coVal, 4),
       status: pollutantStatus(coVal, [4, 9, 15]),
       description: 'Incomplete combustion of hydrocarbons and urban exhaust pockets.',
     },
     so2: {
       code: 'so2',
-      name: 'SOâ‚‚',
+      name: 'SO₂',
       fullName: 'Sulfur Dioxide',
       value: so2Val,
-      unit: 'Âµg/mÂ³',
+      unit: 'µg/m³',
       whoSafeThreshold: 40.0, // WHO 24h guideline
       percentOfLimit: percentOfLimit(so2Val, 40),
       status: pollutantStatus(so2Val, [40, 80, 120]),
