@@ -728,7 +728,7 @@ export default function App({ onHome, onSignOut, onProfileConsumed, initialProfi
   const strokeOffset = circumference - (normalizedAqi / 500) * circumference;
 
   return (
-    <div className="bg-background font-body-md text-on-surface antialiased min-h-screen flex flex-col selection:bg-primary-container selection:text-on-primary-container">
+    <div className="dashboard bg-background font-body-md text-on-surface antialiased min-h-screen flex flex-col selection:bg-primary-container selection:text-on-primary-container">
       {/* HEADER */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(18,35,46,0.04)] border-b border-surface-container/40">
         <div className="h-16 w-full px-margin-mobile md:px-margin flex items-center justify-between gap-space-md">
@@ -752,7 +752,7 @@ export default function App({ onHome, onSignOut, onProfileConsumed, initialProfi
           {/* Top Panel Navigation Box (Strictly visible on tablet & desktop, hidden on mobile) matching Image 2 */}
           <nav
             aria-label="Desktop Top Panel Navigation"
-            className="hidden md:flex items-center gap-1 p-1 bg-surface-container-low/90 backdrop-blur-md rounded-2xl shadow-xs border border-surface-container"
+            className="hidden lg:flex items-center gap-1 p-1 bg-surface-container-low/90 backdrop-blur-md rounded-2xl shadow-xs border border-surface-container"
           >
             {NAV_ITEMS.map((item) => {
               const isActive = activeNavTab === item.id;
@@ -802,7 +802,7 @@ export default function App({ onHome, onSignOut, onProfileConsumed, initialProfi
       {healthProfileOpen && <React.Suspense fallback={null}><UserHealthProfile onClose={() => { setHealthProfileOpen(false); onProfileConsumed?.(); }} onSignOut={onSignOut} /></React.Suspense>}
       {accountError && <p role="alert" className="fixed top-16 right-4 z-50 bg-white border border-primary p-3">{accountError}</p>}
       {/* MAIN CONTAINER */}
-      <main className="w-full pt-16 pb-24 md:pb-10 bg-background flex-1">
+      <main className="w-full pt-16 pb-24 lg:pb-10 bg-background flex-1">
         <div className="flex flex-col w-full">
           {/* Scheduled Alert Notice Toast */}
           {scheduledAlertNotice && (
@@ -820,7 +820,7 @@ export default function App({ onHome, onSignOut, onProfileConsumed, initialProfi
             </div>
           )}
           {/* SIMULATION FLOATING DOCK (Bottom Right) */}
-          <aside className="fixed bottom-20 right-4 z-50 flex flex-col items-end gap-space-xs pointer-events-auto">
+          <aside className="dashboard-preview fixed bottom-20 right-4 z-30 flex flex-col items-end gap-space-xs pointer-events-auto">
             {demoMenuOpen && (
               <div className="flex flex-col gap-space-xs p-space-sm bg-surface-container-lowest/95 backdrop-blur-md rounded-xl shadow-xl border-0 text-label-md transition-all duration-300">
                 <div className="flex items-center justify-between pb-space-xs">
@@ -987,7 +987,7 @@ export default function App({ onHome, onSignOut, onProfileConsumed, initialProfi
           >
             <React.Suspense fallback={null}><AqiGlobe /></React.Suspense>
             {/* Ambient Aura & Drifting Particles */}
-            <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[760px] h-[360px] bg-gradient-to-b from-primary-fixed/30 via-surface-container-low/40 to-transparent blur-3xl pointer-events-none -z-10"></div>
+            <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[760px] max-w-full h-[360px] bg-gradient-to-b from-primary-fixed/30 via-surface-container-low/40 to-transparent blur-3xl pointer-events-none -z-10"></div>
             <div className="absolute top-10 left-1/4 w-32 h-32 rounded-full bg-secondary-container/20 blur-2xl pointer-events-none particle-drift-1 -z-10"></div>
             <div className="absolute top-20 right-1/4 w-40 h-40 rounded-full bg-primary-fixed/25 blur-2xl pointer-events-none particle-drift-2 -z-10"></div>
             <div className="absolute top-44 left-1/3 w-28 h-28 rounded-full bg-tertiary-fixed/20 blur-2xl pointer-events-none particle-drift-3 -z-10"></div>
@@ -1224,7 +1224,7 @@ export default function App({ onHome, onSignOut, onProfileConsumed, initialProfi
                           </span>
                           <button
                             onClick={(e) => removePlace(pl.id, e)}
-                            className="text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity p-0.5"
+                            className="text-on-surface-variant hover:text-error opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity p-2"
                             title="Remove place"
                           >
                             <span className="material-symbols-outlined text-[14px]">close</span>
@@ -1285,7 +1285,7 @@ export default function App({ onHome, onSignOut, onProfileConsumed, initialProfi
           {/* ADD PLACE MODAL */}
           {addPlaceModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/40 backdrop-blur-sm p-margin-mobile">
-              <div className="bg-surface-container-lowest rounded-2xl p-space-lg w-full max-w-md shadow-2xl flex flex-col gap-space-md">
+              <div className="bg-surface-container-lowest rounded-2xl p-space-lg w-full max-w-md max-h-[85dvh] overflow-y-auto shadow-2xl flex flex-col gap-space-md">
                 <div className="flex items-center justify-between">
                   <h3 className="font-headline-md text-headline-md text-on-surface">Add Monitored Place</h3>
                   <button onClick={() => setAddPlaceModalOpen(false)} className="text-on-surface-variant hover:text-on-surface">
@@ -1349,7 +1349,7 @@ export default function App({ onHome, onSignOut, onProfileConsumed, initialProfi
       {/* MOBILE BOTTOM NAVIGATION BAR (Strictly visible ONLY on mobile web app: flex md:hidden) */}
       <nav
         aria-label="Mobile Bottom Navigation"
-        className="flex md:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-container-lowest/95 backdrop-blur-xl shadow-[0_-2px_12px_rgba(18,35,46,0.08)] h-16 px-1 items-center justify-around border-t border-surface-container"
+        className="dashboard-bottom-nav flex lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface-container-lowest/95 backdrop-blur-xl shadow-[0_-2px_12px_rgba(18,35,46,0.08)] h-16 px-1 items-center justify-around border-t border-surface-container"
       >
         {NAV_ITEMS.map((item) => {
           const isActive = activeNavTab === item.id;

@@ -379,3 +379,37 @@ footer a, footer span { color: #fff !important; }
   .landing-brutalist .landing-feature-grid { gap: 24px; }
   .landing-brutalist .landing-hero h1 { font-size: clamp(38px,9vw,60px); }
 }
+
+/* Dashboard layouts must shrink inside nested grids, including report/chat text. */
+.dashboard :is(main, section, .grid, .grid > *, .flex > *) { min-width: 0; }
+.dashboard :is(p, label, article, dd, [role="alert"], [role="status"]) { overflow-wrap: anywhere; }
+.dashboard section[id] { scroll-margin-top: 5rem; }
+.dashboard input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.dashboard :is(textarea, select) { max-width: 100%; }
+.dashboard-bottom-nav {
+  height: calc(4rem + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.dashboard-preview { max-width: calc(100vw - 2rem); }
+@media (max-width: 1023px) {
+  .dashboard > main { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
+  .dashboard-preview { bottom: calc(5rem + env(safe-area-inset-bottom)); }
+}
+@media (max-width: 639px) {
+  .dashboard .font-display-hero { font-size: clamp(32px, 9vw, 44px); line-height: 1.1; }
+  .dashboard .font-headline-lg { font-size: 26px; line-height: 1.2; }
+  .dashboard #hero-search-section { padding-top: 2.5rem; padding-bottom: 2.5rem; }
+  .dashboard #hero-search-section .font-body-lg { font-size: 15px; line-height: 1.6; }
+  .dashboard :is(input, textarea, select):not([type="checkbox"]):not([type="radio"]):not([type="range"]) { font-size: 16px; }
+  .dashboard button:not([role="switch"]) { min-height: 44px; }
+  .dashboard header .language-switcher .lang-pill { min-height: 36px; min-width: 36px; }
+  .dashboard #health-workspace-section > div > div { padding: 1rem; }
+  .dashboard .health-assistant > aside { max-height: 18rem; overflow-y: auto; }
+  .dashboard .health-assistant > div > header { align-items: flex-start; gap: .75rem; }
+  .dashboard .health-assistant > div > header strong { color: white; }
+  .dashboard .health-assistant input[type="checkbox"] { flex-shrink: 0; margin-top: .15rem; }
+  .dashboard .live-air-panel #timeline-section { padding: .75rem; }
+  .dashboard .live-air-panel #timeline-section button { min-height: 0; }
+  .dashboard .live-air-panel #timeline-section .flex.justify-between > span { flex: 1; text-align: center; }
+  .dashboard-preview { position: relative; bottom: auto; right: auto; align-self: flex-end; margin: 1rem; }
+}

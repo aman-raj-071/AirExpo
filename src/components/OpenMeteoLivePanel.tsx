@@ -47,7 +47,7 @@ export const OpenMeteoLivePanel: React.FC<Props> = ({
   const pm10 = data?.pollutants.pm10;
 
   return (
-    <section className="w-full px-margin-mobile md:px-margin pb-space-xl" aria-live="polite">
+    <section className="live-air-panel w-full px-margin-mobile md:px-margin pb-space-xl" aria-live="polite">
       <div className="space-y-6">
         <header className="hidden">
           <div>
@@ -62,7 +62,7 @@ export const OpenMeteoLivePanel: React.FC<Props> = ({
         {loading && !data && <div className="p-10 flex items-center justify-center gap-3"><Loader2 className="w-5 h-5 animate-spin" /> Fetching current air and weather data…</div>}
         {data && (
           <div>
-            <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#fff5f7] via-[#f8c8d3] to-[#e9557c] px-6 py-7 md:px-10 md:py-9 text-[#262636] shadow-sm">
+            <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#fff5f7] via-[#f8c8d3] to-[#e9557c] px-4 py-5 sm:px-6 sm:py-7 md:px-10 md:py-9 text-[#262636] shadow-sm">
               <div className="absolute inset-x-0 bottom-0 h-28 opacity-10 bg-[linear-gradient(90deg,transparent_4%,#7f3652_5%,transparent_12%,#7f3652_13%,#7f3652_17%,transparent_18%,#7f3652_25%,transparent_26%,#7f3652_34%,transparent_35%,#7f3652_47%,transparent_48%,#7f3652_64%,transparent_65%,#7f3652_80%,transparent_81%)]" />
               <div className="relative grid lg:grid-cols-[minmax(0,1.15fr)_150px_minmax(300px,0.95fr)] gap-7 items-center">
                 <div>
@@ -83,7 +83,7 @@ export const OpenMeteoLivePanel: React.FC<Props> = ({
                   </div>
 
                   <div className="mt-7 max-w-[450px]">
-                    <div className="grid grid-cols-6 text-xs sm:text-sm text-center mb-1">{['Good','Moderate','Poor','Unhealthy','Severe','Hazardous'].map((band) => <button type="button" key={band} onClick={() => setSelectedBand(band)} className="rounded px-1 py-1 hover:bg-white/35 focus:outline-none focus:ring-2 focus:ring-white/70 transition">{band}</button>)}</div>
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-y-1 text-xs sm:text-sm text-center mb-1">{['Good','Moderate','Poor','Unhealthy','Severe','Hazardous'].map((band) => <button type="button" key={band} onClick={() => setSelectedBand(band)} className="rounded px-1 py-1 hover:bg-white/35 focus:outline-none focus:ring-2 focus:ring-white/70 transition">{band}</button>)}</div>
                     <div className="relative flex h-1.5 overflow-visible rounded-full">
                       {['#39bd42','#d4ca32','#ef9d43','#ec505f','#d53054','#ad1631'].map((color) => <span key={color} className="flex-1" style={{ backgroundColor: color }} />)}
                       <span className="absolute -top-1.5 h-4 w-4 rounded-full border-4 border-white shadow" style={{ left: `calc(${Math.min(100, data.currentAqi / 3)}% - 8px)`, backgroundColor: data.aqiCategory.color }} />
@@ -101,15 +101,15 @@ export const OpenMeteoLivePanel: React.FC<Props> = ({
                 <div className="flex items-center justify-center lg:justify-end">
                   <div className="relative w-full rounded-[1.4rem] border border-white/70 bg-white/25 backdrop-blur-sm overflow-hidden shadow-sm">
                     <button onClick={onRefresh} disabled={loading} title="Refresh Open‑Meteo" className="absolute right-4 top-4 w-10 h-10 rounded-full bg-white/70 flex items-center justify-center disabled:opacity-50"><RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /></button>
-                    <div className="px-7 py-7 flex items-center gap-6 border-b border-white/60">
+                    <div className="px-4 py-5 pr-14 flex flex-wrap items-center gap-3 sm:px-7 sm:py-7 sm:pr-16 sm:gap-6 border-b border-white/60">
                       <span className="text-5xl">{now.getHours() >= 18 || now.getHours() < 6 ? '🌙' : '☀️'}</span>
                       <span className="text-4xl font-semibold tabular-nums">{data.weather.temperature ?? '—'}<small className="text-lg ml-1">{data.weather.temperature == null ? '' : '°C'}</small></span>
                       <span className="text-lg">{data.weather.weatherDescription.replace('Troposphere','').trim()}</span>
                     </div>
-                    <div className="grid grid-cols-3 divide-x divide-[#c6909e] px-4 py-4">
-                      <button type="button" onClick={() => setSelectedWeather('Humidity reflects moisture in the air.')} className="px-3 text-left hover:bg-white/20 rounded transition"><p className="text-sm">💧 Humidity</p><strong className="text-sm">{data.weather.humidity == null ? '—' : `${data.weather.humidity} %`}</strong></button>
-                      <button type="button" onClick={() => setSelectedWeather('Wind controls how quickly pollutants disperse.')} className="px-3 text-left hover:bg-white/20 rounded transition"><p className="text-sm">🌬 Wind Speed</p><strong className="text-sm">{data.weather.windSpeed == null ? '—' : `${data.weather.windSpeed} km/h`}</strong></button>
-                      <button type="button" onClick={() => setSelectedWeather('UV exposure changes throughout the day.')} className="px-3 text-left hover:bg-white/20 rounded transition"><p className="text-sm">☀ UV Index</p><strong className="text-sm">{data.weather.uvIndex ?? '—'}</strong></button>
+                    <div className="grid grid-cols-3 divide-x divide-[#c6909e] px-1 sm:px-4 py-4">
+                      <button type="button" onClick={() => setSelectedWeather('Humidity reflects moisture in the air.')} className="min-w-0 px-2 sm:px-3 text-left hover:bg-white/20 rounded transition"><p className="text-sm">💧 Humidity</p><strong className="text-sm">{data.weather.humidity == null ? '—' : `${data.weather.humidity} %`}</strong></button>
+                      <button type="button" onClick={() => setSelectedWeather('Wind controls how quickly pollutants disperse.')} className="min-w-0 px-2 sm:px-3 text-left hover:bg-white/20 rounded transition"><p className="text-sm">🌬 Wind Speed</p><strong className="text-sm">{data.weather.windSpeed == null ? '—' : `${data.weather.windSpeed} km/h`}</strong></button>
+                      <button type="button" onClick={() => setSelectedWeather('UV exposure changes throughout the day.')} className="min-w-0 px-2 sm:px-3 text-left hover:bg-white/20 rounded transition"><p className="text-sm">☀ UV Index</p><strong className="text-sm">{data.weather.uvIndex ?? '—'}</strong></button>
                     </div>
                     {selectedWeather && <button type="button" onClick={() => setSelectedWeather(null)} className="w-full border-t border-white/50 bg-white/20 px-5 py-2 text-left text-xs hover:bg-white/35">{selectedWeather} · click to close</button>}
                   </div>
@@ -145,7 +145,7 @@ export const OpenMeteoLivePanel: React.FC<Props> = ({
                         })}
                       </div>
                     </div>
-                    <div className="flex justify-between text-[10px] text-on-surface-variant mt-2">{forecast.filter((_, index) => index % 4 === 0 || index === forecast.length - 1).map((item) => <span key={item.time}>{item.dayLabel} {item.formattedTime}</span>)}</div>
+                    <div className="flex justify-between gap-1 text-[9px] sm:text-[10px] text-on-surface-variant mt-2">{forecast.filter((_, index) => index % 6 === 0 || index === forecast.length - 1).map((item) => <span key={item.time}>{item.dayLabel} {item.formattedTime}</span>)}</div>
                     <div className="text-center text-xs mt-2">Time</div>
                   </div>
                 </div>

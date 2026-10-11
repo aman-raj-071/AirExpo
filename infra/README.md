@@ -48,6 +48,32 @@ In the Amplify console, choose **New app → Host web app**, connect the reposit
 and use the repository root as the application root. Build command: `npm run
 build`; output directory: `dist`.
 
+### Connect hosted storage and Health Assistant
+
+Amplify's static frontend build does not start `server.ts`. Without a separately
+deployed backend or a same-origin API proxy, `/api/cloud/*` requests go to the
+static website and storage/chat cannot work.
+
+1. Deploy `infra/template.yaml` with `ExistingUserPoolId=us-east-1_UOugaJlN8`
+   and `ExistingUserPoolClientId=6rls971j2qq88nune9f74lukbc` to match the
+   frontend's default login. Set `WebOrigin` to the exact Amplify website origin
+   (for example, `https://main.YOUR_APP_ID.amplifyapp.com`, without a trailing
+   slash) so API Gateway allows browser requests.
+2. Copy the stack's `ApiUrl` output into the Amplify Hosting build environment
+   as `VITE_STORAGE_API_URL`. Use the API base URL, including any stage path,
+   without adding `/api/cloud` for this SAM backend. Do not reuse an unrelated
+   API Gateway endpoint: it must serve this project's `/settings`, `/documents`,
+   and `/assistant/conversations` routes.
+3. Configure the model API key on the backend Lambda, along with the provider
+   and model. The template supplies the DynamoDB table and S3 bucket settings.
+   Model keys and AWS credentials must remain server-side.
+4. Rebuild and redeploy the frontend after changing the build environment.
+   In browser developer tools, confirm `/assistant/conversations` is requested
+   from the API host and returns JSON. A 401 indicates a session/authorizer
+   mismatch; a CORS failure requires correcting `WebOrigin`; a 503 JSON response
+   identifies missing backend configuration. HTML indicates a static-site
+   response rather than the cloud API.
+
 ## Security notes
 
 - The API uses Cognito JWT authorization by default.
