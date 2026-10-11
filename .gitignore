@@ -9,3 +9,4 @@ coverage/
 .pnpm-store/
 
 .airexpo-alert-settings.json
+.deployment/

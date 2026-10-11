@@ -1,7 +1,8 @@
 import { fetchAuthSession } from 'aws-amplify/auth';
 
 // The SAM API serves routing under /api/* and storage at its root.
-const base = (import.meta.env.VITE_ROUTE_API_URL?.trim() || import.meta.env.VITE_STORAGE_API_URL?.trim() || '').replace(/\/+$/, '');
+const base = (import.meta.env.VITE_ROUTE_API_URL?.trim() || import.meta.env.VITE_STORAGE_API_URL?.trim()
+  || (import.meta.env.PROD ? 'https://xsvjrx04tl.execute-api.us-east-1.amazonaws.com' : '')).replace(/\/+$/, '');
 
 export async function routeRequest(path: string, options: RequestInit = {}) {
   const headers = new Headers(options.headers);

@@ -59,6 +59,16 @@ routing; the shared implementation uses a public development service when this
 key is absent. Keep the key server-side. Rebuild the frontend after setting the
 API URL; configuring only the frontend does not deploy these Lambda routes.
 
+The existing API `https://xsvjrx04tl.execute-api.us-east-1.amazonaws.com` has
+also been extended with `infra/route-bridge.mjs` as its Lambda entry point,
+preserving the original Bedrock handler as `legacyBedrock.mjs`. Production
+frontend builds default to this URL when neither route nor storage API URL is
+configured. Local development keeps using the Express server. The bridge
+validates Cognito ID tokens and allows CORS from the current Amplify origin
+and localhost:3000. It serves routing only; do not assume this API also serves
+cloud storage. The original Lambda ZIP is backed up under the ignored local
+`.deployment/route-connect/original.zip` directory.
+
 Amplify's static frontend build does not start `server.ts`. Without a separately
 deployed backend or a same-origin API proxy, `/api/cloud/*` requests go to the
 static website and storage/chat cannot work.
