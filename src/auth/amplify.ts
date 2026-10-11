@@ -9,8 +9,14 @@ import {
   signUp,
 } from 'aws-amplify/auth';
 
-const userPoolId = import.meta.env.VITE_COGNITO_USER_POOL_ID?.trim();
-const userPoolClientId = import.meta.env.VITE_COGNITO_USER_POOL_CLIENT_ID?.trim();
+const configuredPoolId = import.meta.env.VITE_COGNITO_USER_POOL_ID?.trim();
+const configuredClientId = import.meta.env.VITE_COGNITO_USER_POOL_CLIENT_ID?.trim();
+// Public identifiers for AirExpo's existing Cognito pool, safe to ship in the
+// browser. Override both together when using a different deployment's pool.
+// Keep incomplete overrides unconfigured instead of mixing two pools' IDs.
+const useDefaultPool = !configuredPoolId && !configuredClientId;
+const userPoolId = useDefaultPool ? 'us-east-1_UOugaJlN8' : configuredPoolId;
+const userPoolClientId = useDefaultPool ? '6rls971j2qq88nune9f74lukbc' : configuredClientId;
 
 export const cognitoConfigured = Boolean(userPoolId && userPoolClientId);
 
