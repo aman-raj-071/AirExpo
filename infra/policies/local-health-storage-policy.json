@@ -1,0 +1,24 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AirExpoHealthProfileAndJournalTable",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:GetItem",
+        "dynamodb:UpdateItem"
+      ],
+      "Resource": "arn:aws:dynamodb:us-east-1:298521811635:table/AirExpoUserSettings"
+    },
+    {
+      "Sid": "AirExpoHealthPrivateS3Objects",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::airexpo-doctor-reports-298521811635/health/*"
+    }
+  ]
+}

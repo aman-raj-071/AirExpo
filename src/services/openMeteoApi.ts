@@ -205,27 +205,24 @@ export async function searchLocations(query: string): Promise<LocationInfo[]> {
 // Reverse geocoding fallback
 export async function reverseGeocode(coords: Coordinates): Promise<LocationInfo> {
   try {
-    const res = await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${coords.lat.toFixed(2)},${coords.lon.toFixed(2)}&count=1&format=json`
-    );
+    const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${coords.lat}&longitude=${coords.lon}&localityLanguage=en`);
+    if (!res.ok) throw new Error(`Reverse geocoding failed (${res.status})`);
     const data = await res.json();
-    if (data.results && data.results[0]) {
-      const item = data.results[0];
-      return {
-        name: item.name,
-        country: item.country || '',
-        admin1: item.admin1 || '',
-        latitude: coords.lat,
-        longitude: coords.lon,
-        timezone: item.timezone,
-      };
-    }
+    const locality = data.city || data.locality || data.principalSubdivision || '';
+    const country = data.countryName || '';
+    if (locality || country) return {
+      name: locality || country,
+      country,
+      admin1: data.principalSubdivision || '',
+      latitude: coords.lat,
+      longitude: coords.lon,
+    };
   } catch (_e) {
     // fallback
   }
 
   return {
-    name: `Station [${coords.lat.toFixed(3)}°, ${coords.lon.toFixed(3)}°]`,
+    name: `Station [${coords.lat.toFixed(3)}Â°, ${coords.lon.toFixed(3)}Â°]`,
     country: 'Coordinates',
     latitude: coords.lat,
     longitude: coords.lon,
@@ -234,17 +231,18 @@ export async function reverseGeocode(coords: Coordinates): Promise<LocationInfo>
 
 // Fetch comprehensive real-time atmospheric and air quality telemetry
 export async function fetchEnvironmentalData(
-  location: LocationInfo
+  location: LocationInfo,
+  signal?: AbortSignal
 ): Promise<EnvironmentalStationData> {
   const lat = location.latitude;
   const lon = location.longitude;
 
   const [aqResponse, weatherResponse] = await Promise.all([
     fetch(
-      `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,us_aqi,european_aqi,uv_index&hourly=pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,us_aqi&forecast_days=3&timezone=auto&cell_selection=nearest`
+      `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,us_aqi,european_aqi,uv_index&hourly=pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,us_aqi&past_days=2&forecast_days=3&timeformat=unixtime&timezone=auto&cell_selection=nearest`, { signal }
     ),
     fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m,cloud_cover,weather_code&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m&forecast_days=3&timezone=auto&cell_selection=nearest`
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m,cloud_cover,weather_code&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m&past_days=2&forecast_days=3&timeformat=unixtime&timezone=auto&cell_selection=nearest`, { signal }
     ),
   ]);
 
@@ -259,60 +257,69 @@ export async function fetchEnvironmentalData(
   const currentWeather = weatherData.current || {};
 
   // Current AQI (US EPA scale)
-  const currentAqi = Math.round(currentAq.us_aqi ?? 38);
+  if (!Number.isFinite(currentAq.us_aqi)) {
+    throw new Error('Air-quality provider did not return a current U.S. AQI for this location.');
+  }
+  const currentAqi = Math.round(currentAq.us_aqi);
   const aqiCat = getAqiCategory(currentAqi);
 
   // Pollutants breakdown against WHO 2021 Reference limits
-  const pm25Val = Number((currentAq.pm2_5 ?? 11.2).toFixed(1));
-  const pm10Val = Number((currentAq.pm10 ?? 22.4).toFixed(1));
-  const no2Val = Number((currentAq.nitrogen_dioxide ?? 18.5).toFixed(1));
-  const o3Val = Number((currentAq.ozone ?? 64.0).toFixed(1));
-  const coVal = Number(((currentAq.carbon_monoxide ?? 280) / 1000).toFixed(2)); // convert to mg/m³
-  const so2Val = Number((currentAq.sulphur_dioxide ?? 4.2).toFixed(1));
+  const pm25Val = Number.isFinite(currentAq.pm2_5) ? Number(currentAq.pm2_5.toFixed(1)) : null;
+  const pm10Val = Number.isFinite(currentAq.pm10) ? Number(currentAq.pm10.toFixed(1)) : null;
+  const no2Val = Number.isFinite(currentAq.nitrogen_dioxide) ? Number(currentAq.nitrogen_dioxide.toFixed(1)) : null;
+  const o3Val = Number.isFinite(currentAq.ozone) ? Number(currentAq.ozone.toFixed(1)) : null;
+  const coVal = Number.isFinite(currentAq.carbon_monoxide) ? Number((currentAq.carbon_monoxide / 1000).toFixed(2)) : null; // convert to mg/mÂ³
+  const so2Val = Number.isFinite(currentAq.sulphur_dioxide) ? Number(currentAq.sulphur_dioxide.toFixed(1)) : null;
+
+  const pollutantStatus = (value: number | null, limits: [number, number, number]): PollutantDetail['status'] => {
+    if (value === null) return 'unavailable';
+    return value <= limits[0] ? 'safe' : value <= limits[1] ? 'moderate' : value <= limits[2] ? 'elevated' : 'hazardous';
+  };
+  const percentOfLimit = (value: number | null, limit: number) => value === null ? 0 : Math.round((value / limit) * 100);
 
   const pollutants: Record<string, PollutantDetail> = {
     pm2_5: {
       code: 'pm2_5',
       name: 'PM2.5',
-      fullName: 'Fine Inhalable Particles (≤2.5 µm)',
+      fullName: 'Fine Inhalable Particles (â‰¤2.5 Âµm)',
       value: pm25Val,
-      unit: 'µg/m³',
+      unit: 'Âµg/mÂ³',
       whoSafeThreshold: 15.0, // WHO 24h guideline
-      percentOfLimit: Math.round((pm25Val / 15.0) * 100),
-      status: pm25Val <= 15 ? 'safe' : pm25Val <= 35 ? 'moderate' : pm25Val <= 75 ? 'elevated' : 'hazardous',
+      percentOfLimit: percentOfLimit(pm25Val, 15),
+      status: pollutantStatus(pm25Val, [15, 35, 75]),
       description: 'Combustion aerosols and secondary sulfates penetrating deep alveolar tissues.',
     },
     pm10: {
       code: 'pm10',
       name: 'PM10',
-      fullName: 'Respirable Particulate Matter (≤10 µm)',
+      fullName: 'Respirable Particulate Matter (â‰¤10 Âµm)',
       value: pm10Val,
-      unit: 'µg/m³',
+      unit: 'Âµg/mÂ³',
       whoSafeThreshold: 45.0, // WHO 24h guideline
-      percentOfLimit: Math.round((pm10Val / 45.0) * 100),
-      status: pm10Val <= 45 ? 'safe' : pm10Val <= 100 ? 'moderate' : pm10Val <= 150 ? 'elevated' : 'hazardous',
+      percentOfLimit: percentOfLimit(pm10Val, 45),
+      status: pollutantStatus(pm10Val, [45, 100, 150]),
       description: 'Suspended road dust, mechanical abrasions, and pollen matrices.',
     },
     no2: {
       code: 'no2',
-      name: 'NO₂',
+      name: 'NOâ‚‚',
       fullName: 'Nitrogen Dioxide',
       value: no2Val,
-      unit: 'µg/m³',
+      unit: 'Âµg/mÂ³',
       whoSafeThreshold: 25.0, // WHO 24h guideline
-      percentOfLimit: Math.round((no2Val / 25.0) * 100),
-      status: no2Val <= 25 ? 'safe' : no2Val <= 50 ? 'moderate' : no2Val <= 100 ? 'elevated' : 'hazardous',
+      percentOfLimit: percentOfLimit(no2Val, 25),
+      status: pollutantStatus(no2Val, [25, 50, 100]),
       description: 'Primary vehicular internal combustion and thermal power generation emissions.',
     },
     o3: {
       code: 'o3',
-      name: 'O₃',
+      name: 'Oâ‚ƒ',
       fullName: 'Ground-Level Ozone',
       value: o3Val,
-      unit: 'µg/m³',
+      unit: 'Âµg/mÂ³',
       whoSafeThreshold: 100.0, // WHO 8h guideline
-      percentOfLimit: Math.round((o3Val / 100.0) * 100),
-      status: o3Val <= 100 ? 'safe' : o3Val <= 140 ? 'moderate' : o3Val <= 180 ? 'elevated' : 'hazardous',
+      percentOfLimit: percentOfLimit(o3Val, 100),
+      status: pollutantStatus(o3Val, [100, 140, 180]),
       description: 'Photochemical secondary reaction of NOx and VOCs under solar radiation.',
     },
     co: {
@@ -320,21 +327,21 @@ export async function fetchEnvironmentalData(
       name: 'CO',
       fullName: 'Carbon Monoxide',
       value: coVal,
-      unit: 'mg/m³',
-      whoSafeThreshold: 4.0, // WHO 24h guideline in mg/m³
-      percentOfLimit: Math.round((coVal / 4.0) * 100),
-      status: coVal <= 4.0 ? 'safe' : coVal <= 9.0 ? 'moderate' : coVal <= 15.0 ? 'elevated' : 'hazardous',
+      unit: 'mg/mÂ³',
+      whoSafeThreshold: 4.0, // WHO 24h guideline in mg/mÂ³
+      percentOfLimit: percentOfLimit(coVal, 4),
+      status: pollutantStatus(coVal, [4, 9, 15]),
       description: 'Incomplete combustion of hydrocarbons and urban exhaust pockets.',
     },
     so2: {
       code: 'so2',
-      name: 'SO₂',
+      name: 'SOâ‚‚',
       fullName: 'Sulfur Dioxide',
       value: so2Val,
-      unit: 'µg/m³',
+      unit: 'Âµg/mÂ³',
       whoSafeThreshold: 40.0, // WHO 24h guideline
-      percentOfLimit: Math.round((so2Val / 40.0) * 100),
-      status: so2Val <= 40 ? 'safe' : so2Val <= 80 ? 'moderate' : so2Val <= 120 ? 'elevated' : 'hazardous',
+      percentOfLimit: percentOfLimit(so2Val, 40),
+      status: pollutantStatus(so2Val, [40, 80, 120]),
       description: 'Industrial heavy oil combustion, refining, and volcanic sulfur traces.',
     },
   };
@@ -351,15 +358,15 @@ export async function fetchEnvironmentalData(
 
   // Micro-meteorology
   const weather: MicroWeather = {
-    temperature: Math.round(currentWeather.temperature_2m ?? 19.5),
-    humidity: Math.round(currentWeather.relative_humidity_2m ?? 58),
-    windSpeed: Math.round(currentWeather.wind_speed_10m ?? 12),
-    windDirection: Math.round(currentWeather.wind_direction_10m ?? 240),
-    surfacePressure: Math.round(currentWeather.surface_pressure ?? 1014),
-    cloudCover: Math.round(currentWeather.cloud_cover ?? 32),
-    weatherCode: currentWeather.weather_code ?? 1,
-    weatherDescription: getWeatherDescription(currentWeather.weather_code ?? 1),
-    uvIndex: Math.round(currentAq.uv_index ?? 3),
+    temperature: Number.isFinite(currentWeather.temperature_2m) ? Math.round(currentWeather.temperature_2m) : null,
+    humidity: Number.isFinite(currentWeather.relative_humidity_2m) ? Math.round(currentWeather.relative_humidity_2m) : null,
+    windSpeed: Number.isFinite(currentWeather.wind_speed_10m) ? Math.round(currentWeather.wind_speed_10m) : null,
+    windDirection: Number.isFinite(currentWeather.wind_direction_10m) ? Math.round(currentWeather.wind_direction_10m) : null,
+    surfacePressure: Number.isFinite(currentWeather.surface_pressure) ? Math.round(currentWeather.surface_pressure) : null,
+    cloudCover: Number.isFinite(currentWeather.cloud_cover) ? Math.round(currentWeather.cloud_cover) : null,
+    weatherCode: Number.isFinite(currentWeather.weather_code) ? currentWeather.weather_code : null,
+    weatherDescription: Number.isFinite(currentWeather.weather_code) ? getWeatherDescription(currentWeather.weather_code) : 'Weather unavailable',
+    uvIndex: Number.isFinite(currentAq.uv_index) ? Math.round(currentAq.uv_index) : null,
   };
 
   // Build 72-Hour Longitudinal Timeline
@@ -373,13 +380,18 @@ export async function fetchEnvironmentalData(
   const hourlyTemp = weatherData.hourly?.temperature_2m || [];
   const hourlyHum = weatherData.hourly?.relative_humidity_2m || [];
   const hourlyWind = weatherData.hourly?.wind_speed_10m || [];
+  const zone = aqData.timezone || 'UTC';
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: zone, year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date());
 
-  for (let i = 0; i < Math.min(hourlyAqTimes.length, 72); i++) {
-    const rawTime = hourlyAqTimes[i];
-    const date = new Date(rawTime);
-    const hour = date.getHours();
-    const dayLabel = i < 24 ? 'Today' : i < 48 ? 'Tomorrow' : date.toLocaleDateString('en-US', { weekday: 'short' });
+  for (let i = 0; i < hourlyAqTimes.length; i++) {
+    const date = new Date(hourlyAqTimes[i] * 1000);
+    const rawTime = date.toISOString();
+    const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: zone, hour:'2-digit', hourCycle:'h23' }).format(date));
+    const day = new Intl.DateTimeFormat('en-CA', { timeZone: zone, year:'numeric', month:'2-digit', day:'2-digit' }).format(date);
+    const tomorrow = new Intl.DateTimeFormat('en-CA', { timeZone: zone, year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date(Date.now()+86400000));
+    const dayLabel = day === today ? 'Today' : day === tomorrow ? 'Tomorrow' : new Intl.DateTimeFormat('en-GB',{timeZone:zone,day:'2-digit',month:'short'}).format(date);
     const formattedTime = `${hour.toString().padStart(2, '0')}:00`;
+    if (!Number.isFinite(hourlyAqi[i])) continue;
 
     const aqiPoint = Math.round(hourlyAqi[i] ?? currentAqi);
     const cat = getAqiCategory(aqiPoint);
@@ -390,13 +402,13 @@ export async function fetchEnvironmentalData(
       hour,
       dayLabel,
       aqi: aqiPoint,
-      pm2_5: Math.round((hourlyPm25[i] ?? 12) * 10) / 10,
-      pm10: Math.round((hourlyPm10[i] ?? 24) * 10) / 10,
-      no2: Math.round((hourlyNo2[i] ?? 18) * 10) / 10,
-      o3: Math.round((hourlyO3[i] ?? 50) * 10) / 10,
-      temperature: Math.round(hourlyTemp[i] ?? weather.temperature),
-      humidity: Math.round(hourlyHum[i] ?? weather.humidity),
-      windSpeed: Math.round(hourlyWind[i] ?? weather.windSpeed),
+      pm2_5: Number.isFinite(hourlyPm25[i]) ? Math.round(hourlyPm25[i] * 10) / 10 : null,
+      pm10: Number.isFinite(hourlyPm10[i]) ? Math.round(hourlyPm10[i] * 10) / 10 : null,
+      no2: Number.isFinite(hourlyNo2[i]) ? Math.round(hourlyNo2[i] * 10) / 10 : null,
+      o3: Number.isFinite(hourlyO3[i]) ? Math.round(hourlyO3[i] * 10) / 10 : null,
+      temperature: Number.isFinite(hourlyTemp[i]) ? Math.round(hourlyTemp[i]) : Number.isFinite(weather.temperature) ? weather.temperature : null,
+      humidity: Number.isFinite(hourlyHum[i]) ? Math.round(hourlyHum[i]) : Number.isFinite(weather.humidity) ? weather.humidity : null,
+      windSpeed: Number.isFinite(hourlyWind[i]) ? Math.round(hourlyWind[i]) : Number.isFinite(weather.windSpeed) ? weather.windSpeed : null,
       isSafeForCardio: aqiPoint <= 65,
       statusLabel: cat.label,
       color: cat.color,
@@ -404,106 +416,47 @@ export async function fetchEnvironmentalData(
   }
 
   // Derive Respiratory Risk Windows (optimal outdoor activity vs ventilation slots)
-  const safeWindows: SafeRespiratoryWindow[] = calculateSafeWindows(hourlyTimeline.slice(0, 24));
+  const safeWindows: SafeRespiratoryWindow[] = hourlyTimeline.length
+    ? calculateSafeWindows(hourlyTimeline.filter(point => Date.parse(point.time) >= Date.now()).slice(0, 24), zone)
+    : [];
 
   return {
-    location,
+    location: { ...location, timezone: weatherData.timezone ?? location.timezone },
     currentAqi,
     aqiCategory: aqiCat,
     dominantPollutant,
     pollutants,
     weather,
     safeWindows,
-    hourlyTimeline,
-    lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    hourlyHistory: hourlyTimeline.filter(point => { const age = Date.now() - Date.parse(point.time); return age >= 0 && age < 24 * 3600000; }),
+    hourlyTimeline: hourlyTimeline.filter(point => Date.parse(point.time) >= Date.now()),
+    lastUpdated: Number.isFinite(currentAq.time)
+      ? new Date(currentAq.time * 1000).toLocaleTimeString([], { timeZone: zone, hour: '2-digit', minute: '2-digit' })
+      : 'Time unavailable',
   };
 }
 
-// Computes continuous time-block windows for optimal respiratory safety
-function calculateSafeWindows(first24Hours: HourlyDataPoint[]): SafeRespiratoryWindow[] {
-  if (!first24Hours || first24Hours.length === 0) {
-    return [
-      {
-        startTime: '06:00',
-        endTime: '08:30',
-        category: 'Optimal Cardio',
-        recommendedActivity: 'Aerobic running, cycling & endurance conditioning',
-        averageAqi: 32,
-        accentColor: '#2E9E5B',
-        isBestWindow: true,
-      },
-      {
-        startTime: '09:00',
-        endTime: '11:00',
-        category: 'Ventilation Window',
-        recommendedActivity: 'Natural household & workspace passive ventilation',
-        averageAqi: 48,
-        accentColor: '#8CC152',
-      },
-      {
-        startTime: '13:00',
-        endTime: '17:00',
-        category: 'Stay Indoors',
-        recommendedActivity: 'Solar ozone peak; avoid strenuous outdoor exertion',
-        averageAqi: 88,
-        accentColor: '#F2C230',
-      },
-    ];
-  }
-
-  const windows: SafeRespiratoryWindow[] = [];
-
-  // Find lowest AQI consecutive slots in the next 24 hours
-  let minAqiSlot = first24Hours[0];
-  first24Hours.forEach((p) => {
-    if (p.aqi < minAqiSlot.aqi) minAqiSlot = p;
-  });
-
-  const bestHour = minAqiSlot.hour;
-  const startBest = Math.max(5, bestHour - 1);
-  const endBest = Math.min(22, startBest + 3);
-
-  windows.push({
-    startTime: `${startBest.toString().padStart(2, '0')}:00`,
-    endTime: `${endBest.toString().padStart(2, '0')}:00`,
-    category: minAqiSlot.aqi <= 50 ? 'Optimal Cardio' : 'Mild Activity',
-    recommendedActivity:
-      minAqiSlot.aqi <= 50
-        ? 'Targeted aerobic running, cycling & peak pulmonary exertion'
-        : 'Controlled outdoor tempo workouts with steady respiratory pacing',
-    averageAqi: minAqiSlot.aqi,
-    accentColor: minAqiSlot.aqi <= 50 ? '#2E9E5B' : '#8CC152',
+// Compare only forecast hours actually supplied by the provider.
+function calculateSafeWindows(points: HourlyDataPoint[], timeZone: string): SafeRespiratoryWindow[] {
+  if (!points.length) return [];
+  const size = Math.min(3, points.length);
+  const candidates = points.map((_, index) => points.slice(index, index + size))
+    .filter(window => window.length === size && window.every((point, index) =>
+      index === 0 || Date.parse(point.time) - Date.parse(window[index - 1].time) === 3600000));
+  if (!candidates.length) return [];
+  const average = (window: HourlyDataPoint[]) => window.reduce((sum, point) => sum + point.aqi, 0) / window.length;
+  const best = candidates.reduce((lowest, window) => average(window) < average(lowest) ? window : lowest);
+  const averageAqi = Math.round(average(best));
+  const format = (timestamp: number) => new Intl.DateTimeFormat('en-GB', {
+    timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).format(new Date(timestamp));
+  return [{
+    startTime: best[0].formattedTime,
+    endTime: format(Date.parse(best[best.length - 1].time) + 3600000),
+    category: averageAqi > 100 ? 'Stay Indoors' : 'Mild Activity',
+    recommendedActivity: 'Lowest average modeled AQI among available consecutive forecast windows; compare with your personal guidance.',
+    averageAqi,
+    accentColor: getAqiCategory(averageAqi).color,
     isBestWindow: true,
-  });
-
-  // Ventilation window (typically morning or late evening)
-  const morningVentHour = 8;
-  windows.push({
-    startTime: `${morningVentHour.toString().padStart(2, '0')}:00`,
-    endTime: `${(morningVentHour + 2).toString().padStart(2, '0')}:30`,
-    category: 'Ventilation Window',
-    recommendedActivity: 'Cross-breeze airflow exchange before peak commuter traffic resurgence',
-    averageAqi: Math.round(minAqiSlot.aqi * 1.15),
-    accentColor: '#0B7A8A',
-  });
-
-  // Afternoon peak caution slot (usually 13:00 - 17:00 due to ozone and heat)
-  const afternoonPoints = first24Hours.filter((p) => p.hour >= 13 && p.hour <= 17);
-  const avgAfternoonAqi = afternoonPoints.length
-    ? Math.round(afternoonPoints.reduce((acc, cur) => acc + cur.aqi, 0) / afternoonPoints.length)
-    : minAqiSlot.aqi + 35;
-
-  windows.push({
-    startTime: '13:30',
-    endTime: '17:00',
-    category: avgAfternoonAqi > 75 ? 'Stay Indoors' : 'Mild Activity',
-    recommendedActivity:
-      avgAfternoonAqi > 75
-        ? 'Photochemical ozone buildup and direct thermal radiation peak'
-        : 'Moderate ambient stability; light pedestrian transit acceptable',
-    averageAqi: avgAfternoonAqi,
-    accentColor: avgAfternoonAqi > 100 ? '#F08A24' : avgAfternoonAqi > 50 ? '#F2C230' : '#8CC152',
-  });
-
-  return windows;
+  }];
 }

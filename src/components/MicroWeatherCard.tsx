@@ -43,7 +43,7 @@ export const MicroWeatherCard: React.FC<MicroWeatherCardProps> = ({
         <div className="mt-4 flex items-baseline justify-between">
           <div className="flex items-baseline gap-2">
             <span className="text-4xl font-bold font-display text-[#12232E] tabular-nums">
-              {weather.temperature}°C
+              {weather.temperature == null ? '—' : `${weather.temperature}°C`}
             </span>
             <span className="text-xs text-[#4A5F6D] font-body">Ambient Air Temp</span>
           </div>
@@ -62,10 +62,10 @@ export const MicroWeatherCard: React.FC<MicroWeatherCardProps> = ({
             <div>
               <div className="text-[11px] text-[#4A5F6D] font-label">Barometric Pressure</div>
               <div className="text-base font-bold font-display text-[#12232E] tabular-nums mt-0.5">
-                {weather.surfacePressure} <span className="text-xs font-normal text-[#4A5F6D]">hPa</span>
+                {weather.surfacePressure == null ? '—' : weather.surfacePressure} <span className="text-xs font-normal text-[#4A5F6D]">{weather.surfacePressure == null ? '' : 'hPa'}</span>
               </div>
               <div className="text-[10px] text-[#4A5F6D] font-body mt-0.5">
-                {weather.surfacePressure >= 1013 ? 'High tropospheric ridge' : 'Low convective depression'}
+                {weather.surfacePressure == null ? 'Pressure unavailable' : 'Modeled surface pressure'}
               </div>
             </div>
           </div>
@@ -76,11 +76,11 @@ export const MicroWeatherCard: React.FC<MicroWeatherCardProps> = ({
             <div>
               <div className="text-[11px] text-[#4A5F6D] font-label">Wind Dispersion</div>
               <div className="text-base font-bold font-display text-[#12232E] tabular-nums mt-0.5">
-                {weather.windSpeed} <span className="text-xs font-normal text-[#4A5F6D]">km/h</span>
+                {weather.windSpeed == null ? '—' : weather.windSpeed} <span className="text-xs font-normal text-[#4A5F6D]">{weather.windSpeed == null ? '' : 'km/h'}</span>
               </div>
               <div className="text-[10px] text-[#4A5F6D] font-body mt-0.5 flex items-center gap-1">
-                <Compass className="w-3 h-3 text-[#0B7A8A]" style={{ transform: `rotate(${weather.windDirection}deg)` }} />
-                <span>Vector: {weather.windDirection}°</span>
+                {weather.windDirection != null && <Compass className="w-3 h-3 text-[#0B7A8A]" style={{ transform: `rotate(${weather.windDirection}deg)` }} />}
+                <span>{weather.windDirection == null ? 'Direction unavailable' : `Direction ${weather.windDirection}°`}</span>
               </div>
             </div>
           </div>
@@ -91,10 +91,10 @@ export const MicroWeatherCard: React.FC<MicroWeatherCardProps> = ({
             <div>
               <div className="text-[11px] text-[#4A5F6D] font-label">Relative Humidity</div>
               <div className="text-base font-bold font-display text-[#12232E] tabular-nums mt-0.5">
-                {weather.humidity}%
+                {weather.humidity == null ? '—' : `${weather.humidity}%`}
               </div>
               <div className="text-[10px] text-[#4A5F6D] font-body mt-0.5">
-                {weather.humidity > 65 ? 'Enhanced aerosol hygroscopicity' : 'Dry dispersion conditions'}
+                {weather.humidity == null ? 'Humidity unavailable' : 'Modeled relative humidity'}
               </div>
             </div>
           </div>
@@ -105,10 +105,10 @@ export const MicroWeatherCard: React.FC<MicroWeatherCardProps> = ({
             <div>
               <div className="text-[11px] text-[#4A5F6D] font-label">Cloud & UV Index</div>
               <div className="text-base font-bold font-display text-[#12232E] tabular-nums mt-0.5">
-                UV {weather.uvIndex} <span className="text-xs font-normal text-[#4A5F6D]">· {weather.cloudCover}%</span>
+                UV {weather.uvIndex ?? '—'} <span className="text-xs font-normal text-[#4A5F6D]">· {weather.cloudCover == null ? '—' : `${weather.cloudCover}%`}</span>
               </div>
               <div className="text-[10px] text-[#4A5F6D] font-body mt-0.5">
-                {weather.cloudCover < 30 ? 'High solar flux (O₃ potential)' : 'Filtered irradiance'}
+                {weather.cloudCover == null ? 'Cloud cover unavailable' : 'Modeled sky conditions'}
               </div>
             </div>
           </div>

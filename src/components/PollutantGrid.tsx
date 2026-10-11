@@ -18,6 +18,8 @@ export const PollutantGrid: React.FC<PollutantGridProps> = ({ pollutants }) => {
         return '#F08A24';
       case 'hazardous':
         return '#D93F3F';
+      case 'unavailable':
+        return '#82919A';
       default:
         return '#4A5F6D';
     }
@@ -33,6 +35,8 @@ export const PollutantGrid: React.FC<PollutantGridProps> = ({ pollutants }) => {
         return 'Exceeds Guideline';
       case 'hazardous':
         return 'Critical Exposure';
+      case 'unavailable':
+        return 'Unavailable';
     }
   };
 
@@ -40,7 +44,7 @@ export const PollutantGrid: React.FC<PollutantGridProps> = ({ pollutants }) => {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {items.map((item) => {
         const color = getStatusColor(item.status);
-        const percent = Math.min(item.percentOfLimit, 250);
+        const percent = item.status === 'unavailable' ? 0 : Math.min(item.percentOfLimit, 250);
 
         return (
           <div
@@ -65,10 +69,10 @@ export const PollutantGrid: React.FC<PollutantGridProps> = ({ pollutants }) => {
               </div>
 
               {/* Numerical Concentration */}
-              <div className="mt-3 flex items-baseline gap-1.5">
-                <span className="text-3xl font-bold font-display tracking-tight text-[#12232E] tabular-nums">
-                  {item.value}
-                </span>
+            <div className="mt-3 flex items-baseline gap-1.5">
+              <span className="text-3xl font-bold font-display tracking-tight text-[#12232E] tabular-nums">
+                {item.value ?? '—'}
+              </span>
                 <span className="text-xs text-[#4A5F6D] font-label font-medium">
                   {item.unit}
                 </span>
@@ -86,9 +90,9 @@ export const PollutantGrid: React.FC<PollutantGridProps> = ({ pollutants }) => {
                   />
                 </div>
                 <div className="flex items-center justify-between text-[11px] text-[#4A5F6D] font-label">
-                  <span>WHO Standard: {item.whoSafeThreshold} {item.unit}</span>
+                  <span>{item.status === 'unavailable' ? 'WHO comparison unavailable' : `WHO Standard: ${item.whoSafeThreshold} ${item.unit}`}</span>
                   <span className="tabular-nums font-medium text-[#12232E]">
-                    {item.percentOfLimit}% of limit
+                    {item.status === 'unavailable' ? 'No reading' : `${item.percentOfLimit}% of limit`}
                   </span>
                 </div>
               </div>

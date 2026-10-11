@@ -1,11 +1,8 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { exchangeCodeHandler } from './exchangeCode.mjs';
+import { cloudHandler } from './cloud.mjs';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
-const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const s3 = new S3Client({});
-const profileTable = process.env.PROFILE_TABLE;
-const symptomTable = process.env.SYMPTOM_TABLE;
 const reportBucket = process.env.REPORT_BUCKET;
 
 const response = (statusCode, body) => ({
@@ -19,11 +16,6 @@ const bodyFrom = (event) => {
   try { return JSON.parse(event.body || '{}'); } catch { return null; }
 };
 
-function validateProfile(value) {
-  return value && ['everyday', 'asthma', 'athlete'].includes(value.mode)
-    && Number.isFinite(Number(value.usualOutdoorMinutes));
-}
-
 function recommendation({ aqi = 0, mode = 'everyday', minutes = 30, activity = 'walk' }) {
   const sensitivity = mode === 'asthma' ? 1.45 : mode === 'athlete' ? 1.15 : 1;
   const intensity = activity === 'run' ? 1.9 : activity === 'cycle' ? 1.55 : 1;
@@ -35,6 +27,7 @@ function recommendation({ aqi = 0, mode = 'everyday', minutes = 30, activity = '
 }
 
 export async function handler(event) {
+  if (event.rawPath === '/api/exchange-code' || event.rawPath === '/api/auth/me') return exchangeCodeHandler(event);
   if (event.source === 'airguard.schedule') {
     // Notification delivery is deliberately separate: only opted-in users
     // should be processed after SNS/web-push consent is implemented.
@@ -42,42 +35,12 @@ export async function handler(event) {
     return { processed: 0 };
   }
 
+  const cloudResult = await cloudHandler(event);
+  if (cloudResult) return cloudResult;
   const userId = userIdFrom(event);
   if (!userId) return response(401, { error: 'Authenticated user identity is required.' });
   const method = event.requestContext?.http?.method;
   const path = event.rawPath || '';
-
-  if (path === '/profile' && method === 'GET') {
-    const result = await db.send(new GetCommand({ TableName: profileTable, Key: { userId } }));
-    return response(200, { data: result.Item || null });
-  }
-
-  if (path === '/profile' && method === 'POST') {
-    const input = bodyFrom(event);
-    if (!validateProfile(input)) return response(400, { error: 'Invalid profile.' });
-    const item = { ...input, userId, updatedAt: new Date().toISOString() };
-    await db.send(new PutCommand({ TableName: profileTable, Item: item }));
-    return response(200, { data: item });
-  }
-
-  if (path === '/symptoms' && method === 'GET') {
-    const result = await db.send(new QueryCommand({
-      TableName: symptomTable,
-      KeyConditionExpression: 'userId = :userId',
-      ExpressionAttributeValues: { ':userId': userId },
-      ScanIndexForward: false,
-      Limit: 100,
-    }));
-    return response(200, { data: result.Items || [] });
-  }
-
-  if (path === '/symptoms' && method === 'POST') {
-    const input = bodyFrom(event);
-    if (!input || !['mild', 'moderate', 'severe'].includes(input.severity)) return response(400, { error: 'Invalid symptom entry.' });
-    const item = { ...input, userId, recordedAt: input.recordedAt || new Date().toISOString() };
-    await db.send(new PutCommand({ TableName: symptomTable, Item: item }));
-    return response(201, { data: item });
-  }
 
   if (path === '/recommendations' && method === 'POST') {
     const input = bodyFrom(event);

@@ -54,43 +54,30 @@ const kn: Record<string, string> = {
   'Sign in to unlock your personal health workspace': 'ವೈಯಕ್ತಿಕ ಆರೋಗ್ಯ ಕಾರ್ಯಕ್ಷೇತ್ರ ತೆರೆಯಲು ಸೈನ್ ಇನ್ ಮಾಡಿ',
 };
 
-const originalText = new WeakMap<Text, string>();
+const textState = new WeakMap<Text, { source: string; rendered: string }>();
 
 export function translateDocument(language: AppLanguage) {
-  const dictionary = language === 'HI' ? hi : language === 'KN' ? kn : {};
+  const dictionary = language === 'HI' ? hi : language === 'KN' ? kn : null;
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   let node = walker.nextNode() as Text | null;
+
   while (node) {
     const parent = node.parentElement;
-    if (parent && !['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(parent.tagName)) {
+    if (parent && !['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA', 'INPUT'].includes(parent.tagName)) {
       const current = node.nodeValue || '';
 
-      // English is the React-rendered source of truth. Refresh the stored value
-      // instead of restoring an older render (for example, the previous city/AQI).
-      if (language === 'EN') {
-        originalText.set(node, current);
-        node = walker.nextNode() as Text | null;
-        continue;
-      }
-
-      if (!originalText.has(node)) originalText.set(node, current);
-      let source = originalText.get(node) || '';
-      const sourceKey = source.trim();
-      const renderedTranslation = dictionary[sourceKey]
-        ? source.replace(sourceKey, dictionary[sourceKey])
-        : source;
-
-      // React may reuse a text node when live content changes. If the current
-      // value is neither its source nor our translation, treat it as new data.
-      if (current !== source && current !== renderedTranslation) {
-        source = current;
-        originalText.set(node, source);
-      }
-      const trimmed = source.trim();
-      const next = dictionary[trimmed] ? source.replace(trimmed, dictionary[trimmed]) : current;
-      if (next !== node.nodeValue) node.nodeValue = next;
+      const previous = textState.get(node);
+      // React may reuse a text node for a new location, reading or greeting.
+      // Only reuse our source when the DOM still contains our last output.
+      const source = previous && current === previous.rendered ? previous.source : current;
+      const key = source.trim();
+      const rendered = dictionary && dictionary[key] ? source.replace(key, dictionary[key]) : source;
+      textState.set(node, { source, rendered });
+      // A single, conditional write prevents an observer feedback loop.
+      if (current !== rendered) node.nodeValue = rendered;
     }
     node = walker.nextNode() as Text | null;
   }
+
   document.documentElement.lang = language === 'HI' ? 'hi' : language === 'KN' ? 'kn' : 'en';
 }

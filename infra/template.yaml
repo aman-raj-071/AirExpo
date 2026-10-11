@@ -2,25 +2,61 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: AirGuard AI hackathon backend using seven purposeful AWS services.
 
+Parameters:
+  CognitoDomain:
+    Type: String
+    Default: us-east-1uougajln8.auth.us-east-1.amazoncognito.com
+  LoginCallback:
+    Type: String
+    Default: https://d84l1y8p4kdic.cloudfront.net
+  WebOrigin:
+    Type: String
+    Default: https://d84l1y8p4kdic.cloudfront.net
+  ExistingUserPoolId:
+    Type: String
+    Default: ''
+  ExistingUserPoolClientId:
+    Type: String
+    Default: ''
+Conditions:
+  CreateUserPool: !Equals [!Ref ExistingUserPoolId, '']
+
 Globals:
   Function:
-    Runtime: nodejs20.x
-    Timeout: 15
+    Runtime: nodejs22.x
+    Timeout: 30
     MemorySize: 256
     Environment:
       Variables:
+        COGNITO_USER_POOL_ID: !If [CreateUserPool, !Ref UserPool, !Ref ExistingUserPoolId]
+        COGNITO_CLIENT_ID: !If [CreateUserPool, !Ref UserPoolClient, !Ref ExistingUserPoolClientId]
+        COGNITO_DOMAIN: !Ref CognitoDomain
+        COGNITO_REDIRECT_URI: !Ref LoginCallback
+        SETTINGS_TABLE: !Ref SettingsTable
         PROFILE_TABLE: !Ref ProfileTable
         SYMPTOM_TABLE: !Ref SymptomTable
+        DOCUMENT_TABLE: !Ref DocumentTable
+        CONVERSATION_TABLE: !Ref ConversationTable
+        REMINDER_TABLE: !Ref ReminderTable
         REPORT_BUCKET: !Ref ReportBucket
+        AI_PROVIDER: gemini
+        GEMINI_MODEL: gemini-3.8-flash
 
 Resources:
   # 1. Cognito — user identity and JWTs
   UserPool:
     Type: AWS::Cognito::UserPool
+    Condition: CreateUserPool
     Properties:
       UserPoolName: airguard-users
       UsernameAttributes: [email]
       AutoVerifiedAttributes: [email]
+      EmailConfiguration:
+        EmailSendingAccount: COGNITO_DEFAULT
+      VerificationMessageTemplate:
+        DefaultEmailOption: CONFIRM_WITH_CODE
+        EmailSubject: Your AirGuard AI verification code
+        EmailMessage: "Your AirGuard AI verification code is {####}."
       Policies:
         PasswordPolicy:
           MinimumLength: 8
@@ -30,6 +66,7 @@ Resources:
 
   UserPoolClient:
     Type: AWS::Cognito::UserPoolClient
+    Condition: CreateUserPool
     Properties:
       UserPoolId: !Ref UserPool
       ClientName: airguard-web
@@ -40,8 +77,11 @@ Resources:
   AirGuardApi:
     Type: AWS::Serverless::HttpApi
     Properties:
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 20
+        ThrottlingRateLimit: 10
       CorsConfiguration:
-        AllowOrigins: ['*']
+        AllowOrigins: [!Ref WebOrigin]
         AllowHeaders: [authorization, content-type]
         AllowMethods: [GET, POST, DELETE, OPTIONS]
       Auth:
@@ -49,8 +89,10 @@ Resources:
         Authorizers:
           CognitoJwt:
             JwtConfiguration:
-              issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}
-              audience: [!Ref UserPoolClient]
+              issuer: !Sub
+                - https://cognito-idp.${AWS::Region}.amazonaws.com/${PoolId}
+                - PoolId: !If [CreateUserPool, !Ref UserPool, !Ref ExistingUserPoolId]
+              audience: [!If [CreateUserPool, !Ref UserPoolClient, !Ref ExistingUserPoolClientId]]
             IdentitySource: $request.header.Authorization
 
   # 3. Lambda — API and recommendation processing
@@ -60,16 +102,90 @@ Resources:
       CodeUri: lambda/
       Handler: index.handler
       Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref SettingsTable }
         - DynamoDBCrudPolicy: { TableName: !Ref ProfileTable }
         - DynamoDBCrudPolicy: { TableName: !Ref SymptomTable }
+        - DynamoDBCrudPolicy: { TableName: !Ref DocumentTable }
+        - DynamoDBCrudPolicy: { TableName: !Ref ConversationTable }
+        - DynamoDBCrudPolicy: { TableName: !Ref ReminderTable }
         - S3CrudPolicy: { BucketName: !Ref ReportBucket }
+        - Statement:
+            - Effect: Allow
+              Action:
+                - textract:DetectDocumentText
+                - textract:StartDocumentTextDetection
+                - textract:GetDocumentTextDetection
+              Resource: '*'
       Events:
+        ExchangeCode:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AirGuardApi
+            Path: /api/exchange-code
+            Method: POST
+            Auth: {Authorizer: NONE}
+        AuthMe:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AirGuardApi
+            Path: /api/auth/me
+            Method: GET
+            Auth: {Authorizer: NONE}
         AnyApi:
           Type: HttpApi
           Properties:
             ApiId: !Ref AirGuardApi
             Path: /{proxy+}
             Method: ANY
+
+  AqiWorkflowFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/
+      Handler: aqiWorkflow.handler
+      Timeout: 20
+
+  AqiWorkflow:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: step-functions/aqi-workflow.asl.json
+      DefinitionSubstitutions:
+        AqiWorkflowFunctionArn: !GetAtt AqiWorkflowFunction.Arn
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref AqiWorkflowFunction
+
+  WorkflowApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/
+      Handler: workflowApi.handler
+      Environment:
+        Variables:
+          AQI_WORKFLOW_ARN: !Ref AqiWorkflow
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: states:StartExecution
+              Resource: !Ref AqiWorkflow
+      Events:
+        StartAqiWorkflow:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AirGuardApi
+            Path: /api/aqi/workflow
+            Method: POST
+
+  SettingsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions: [{ AttributeName: userId, AttributeType: S }]
+      KeySchema: [{ AttributeName: userId, KeyType: HASH }]
+      SSESpecification: { SSEEnabled: true }
+      PointInTimeRecoverySpecification: { PointInTimeRecoveryEnabled: true }
 
   # 4. DynamoDB — private profiles and symptom observations
   ProfileTable:
@@ -92,9 +208,48 @@ Resources:
         - { AttributeName: recordedAt, KeyType: RANGE }
       SSESpecification: { SSEEnabled: true }
 
+  DocumentTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: userId, AttributeType: S }
+        - { AttributeName: documentId, AttributeType: S }
+      KeySchema:
+        - { AttributeName: userId, KeyType: HASH }
+        - { AttributeName: documentId, KeyType: RANGE }
+      SSESpecification: { SSEEnabled: true }
+
+  ConversationTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: userId, AttributeType: S }
+        - { AttributeName: conversationId, AttributeType: S }
+      KeySchema:
+        - { AttributeName: userId, KeyType: HASH }
+        - { AttributeName: conversationId, KeyType: RANGE }
+      SSESpecification: { SSEEnabled: true }
+      TimeToLiveSpecification: { AttributeName: expiresAt, Enabled: true }
+
+  ReminderTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: userId, AttributeType: S }
+        - { AttributeName: reminderId, AttributeType: S }
+      KeySchema:
+        - { AttributeName: userId, KeyType: HASH }
+        - { AttributeName: reminderId, KeyType: RANGE }
+      SSESpecification: { SSEEnabled: true }
+
   # 5. S3 — private, encrypted generated reports
   ReportBucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
@@ -108,6 +263,7 @@ Resources:
         Rules:
           - Id: ExpireHackathonReports
             Status: Enabled
+            Prefix: reports/
             ExpirationInDays: 30
 
   # 6. EventBridge — periodic AQI alert evaluation
@@ -116,7 +272,7 @@ Resources:
     Properties:
       Description: Evaluate opted-in AirGuard pollution alerts every 30 minutes.
       ScheduleExpression: rate(30 minutes)
-      State: ENABLED
+      State: DISABLED
       Targets:
         - Arn: !GetAtt ApiFunction.Arn
           Id: AirGuardAlertEvaluator
@@ -137,7 +293,13 @@ Resources:
 Outputs:
   ApiUrl:
     Value: !Sub https://${AirGuardApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}
-  UserPoolId: { Value: !Ref UserPool }
-  UserPoolClientId: { Value: !Ref UserPoolClient }
+  SettingsTableName: { Value: !Ref SettingsTable }
+  ProfileTableName: { Value: !Ref ProfileTable }
+  SymptomTableName: { Value: !Ref SymptomTable }
+  DocumentTableName: { Value: !Ref DocumentTable }
+  ConversationTableName: { Value: !Ref ConversationTable }
+  ReminderTableName: { Value: !Ref ReminderTable }
+  UserPoolId: { Value: !If [CreateUserPool, !Ref UserPool, !Ref ExistingUserPoolId] }
+  UserPoolClientId: { Value: !If [CreateUserPool, !Ref UserPoolClient, !Ref ExistingUserPoolClientId] }
   ReportBucketName: { Value: !Ref ReportBucket }
-
+  AqiWorkflowArn: { Value: !Ref AqiWorkflow }

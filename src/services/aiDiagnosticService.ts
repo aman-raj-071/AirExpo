@@ -4,9 +4,10 @@ const cache = new Map<string, { report: DiagnosticReport; timestamp: number }>()
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 export async function fetchAiDiagnostic(
-  station: EnvironmentalStationData
+  station: EnvironmentalStationData,
+  signal?: AbortSignal
 ): Promise<DiagnosticReport> {
-  const cacheKey = `${station.location.name}-${station.currentAqi}-${Math.round(station.weather.temperature)}`;
+  const cacheKey = JSON.stringify([station.location, station.currentAqi, station.pollutants, station.weather, station.safeWindows]);
   const cached = cache.get(cacheKey);
 
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
@@ -15,6 +16,7 @@ export async function fetchAiDiagnostic(
 
   try {
     const response = await fetch('/api/diagnose', {
+      signal,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -54,51 +56,27 @@ export async function fetchAiDiagnostic(
       }
     }
   } catch (err) {
+    if (signal?.aborted) throw err;
     console.warn('AI Diagnostic endpoint unreachable, utilizing calibrated telemetry fallback:', err);
   }
 
-  // Resilient scientific fallback
-  const aqi = station.currentAqi;
-  const isClean = aqi <= 50;
+  // A transparent fallback reports only readings received from the data service.
+  const value = (n: number | null | undefined, unit = '') => n == null || !Number.isFinite(n) ? null : `${n}${unit}`;
+  const observedIndicators = [
+    ['U.S. AQI', value(station.currentAqi)],
+    ['PM2.5', value(station.pollutants.pm2_5?.value, ' µg/m³')],
+    ['PM10', value(station.pollutants.pm10?.value, ' µg/m³')],
+    ['NO₂', value(station.pollutants.no2?.value, ' µg/m³')],
+    ['O₃', value(station.pollutants.o3?.value, ' µg/m³')],
+    ['Temperature', value(station.weather.temperature, ' °C')],
+    ['Relative humidity', value(station.weather.humidity, '%')],
+  ].filter((item): item is [string, string] => item[1] !== null).map(([label, indicator]) => ({ label, value: indicator }));
   const fallbackReport: DiagnosticReport = {
-    clinicalHeadline: isClean
-      ? 'Optimal planetary boundary-layer ventilation with nominal airway stress'
-      : 'Suspended aerosol accumulation under stratified micro-climatic gradient',
-    executiveSummary: `Real-time atmospheric telemetry across ${station.location.name} indicates an AQI of ${aqi} governed principally by ${station.dominantPollutant}. Barometric pressure stands at ${station.weather.surfacePressure} hPa with ${station.weather.windSpeed} km/h convective displacement.`,
-    sourceAttribution: [
-      {
-        factor: 'Primary Motor Vehicle & Transit Exhaust',
-        contributionPercent: aqi > 75 ? 46 : 28,
-        description: 'Internal combustion particulate matter and nitric oxide precursors along transit arteries.',
-      },
-      {
-        factor: 'Secondary Photochemical Aerosols',
-        contributionPercent: 32,
-        description: 'Solar irradiation interacting with ambient volatile organic compounds.',
-      },
-      {
-        factor: 'Biogenic Background & Crustal Dust',
-        contributionPercent: aqi > 75 ? 22 : 40,
-        description: 'Natural vegetative aerosols and resuspended mineral soil fractions.',
-      },
-    ],
-    vulnerablePopulationAdvice: {
-      asthmaAndRespiratory: isClean
-        ? 'Airway hyper-reactivity triggers are minimal. Standard prophylactic regime suffices.'
-        : 'Slightly heightened bronchial sensitivity. Keep rescue bronchodilators accessible during sustained activity.',
-      pediatricAndElderly: isClean
-        ? 'No restrictions on recreational or developmental outdoor activities.'
-        : 'Moderately paced outdoor intervals recommended; hydrate to preserve mucosal clearance.',
-      enduranceAthletes: isClean
-        ? 'Optimal physiological window for anaerobic and VO2 max aerobic conditioning.'
-        : 'Schedule high-intensity threshold efforts during early morning hours (06:00 - 08:30).',
-    },
-    microClimateAction: [
-      'Utilize designated low-particulate respiratory windows for intensive aerobic training.',
-      'Ventilate living and workspace quarters during morning clean airflow periods.',
-      `Maintain hydration to assist natural mucosal particulate clearance under ${station.weather.humidity}% relative humidity.`,
-    ],
-    confidenceScore: 95,
+    environmentalHeadline: `Current U.S. AQI: ${station.currentAqi}`,
+    executiveSummary: `Environmental readings for ${station.location.name}. The values below are the readings returned by the selected data provider; no pollution source or individual health effect can be inferred from them alone.`,
+    observedIndicators,
+    contextNotes: ['These readings describe outdoor environmental conditions at the selected location.', 'AQI and pollutant values do not establish an individual diagnosis or predict how a specific person will respond.'],
+    limitations: ['Provider readings may be modeled grid estimates or station observations and may not match street-level exposure.', 'This explanation does not give medical advice or treatment recommendations.'],
   };
 
   cache.set(cacheKey, { report: fallbackReport, timestamp: Date.now() });

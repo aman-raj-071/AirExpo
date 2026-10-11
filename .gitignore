@@ -7,3 +7,5 @@ coverage/
 .env*
 !.env.example
 .pnpm-store/
+
+.airexpo-alert-settings.json

@@ -24,16 +24,13 @@ export function loadHealthProfile(): HealthProfile {
   return readJson(PROFILE_KEY, DEFAULT_HEALTH_PROFILE);
 }
 
-export function saveHealthProfile(profile: HealthProfile): void {
-  window.localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+export function hasLocalHealthProfile(): boolean {
+  try { return window.localStorage.getItem(PROFILE_KEY) !== null; }
+  catch { return false; }
 }
 
 export function loadSymptomEntries(): SymptomEntry[] {
   return readJson<SymptomEntry[]>(JOURNAL_KEY, []);
-}
-
-export function saveSymptomEntries(entries: SymptomEntry[]): void {
-  window.localStorage.setItem(JOURNAL_KEY, JSON.stringify(entries));
 }
 
 export function clearLocalHealthData(): void {

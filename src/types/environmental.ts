@@ -17,24 +17,24 @@ export interface PollutantDetail {
   code: 'pm2_5' | 'pm10' | 'no2' | 'o3' | 'co' | 'so2';
   name: string;
   fullName: string;
-  value: number;
+  value: number | null;
   unit: string;
   whoSafeThreshold: number; // WHO 24h or 8h guideline
-  status: 'safe' | 'moderate' | 'elevated' | 'hazardous';
+  status: 'safe' | 'moderate' | 'elevated' | 'hazardous' | 'unavailable';
   percentOfLimit: number;
   description: string;
 }
 
 export interface MicroWeather {
-  temperature: number;
-  humidity: number;
-  windSpeed: number;
-  windDirection: number;
-  surfacePressure: number;
-  cloudCover: number;
-  weatherCode: number;
+  temperature: number | null;
+  humidity: number | null;
+  windSpeed: number | null;
+  windDirection: number | null;
+  surfacePressure: number | null;
+  cloudCover: number | null;
+  weatherCode: number | null;
   weatherDescription: string;
-  uvIndex: number;
+  uvIndex: number | null;
 }
 
 export interface HourlyDataPoint {
@@ -43,13 +43,13 @@ export interface HourlyDataPoint {
   hour: number;
   dayLabel: string;
   aqi: number;
-  pm2_5: number;
-  pm10: number;
-  no2: number;
-  o3: number;
-  temperature: number;
-  humidity: number;
-  windSpeed: number;
+  pm2_5: number | null;
+  pm10: number | null;
+  no2: number | null;
+  o3: number | null;
+  temperature: number | null;
+  humidity: number | null;
+  windSpeed: number | null;
   isSafeForCardio: boolean;
   statusLabel: string;
   color: string;
@@ -65,25 +65,17 @@ export interface SafeRespiratoryWindow {
   isBestWindow?: boolean;
 }
 
-export interface SourceAttribution {
-  factor: string;
-  contributionPercent: number;
-  description: string;
-}
-
-export interface VulnerableAdvice {
-  asthmaAndRespiratory: string;
-  pediatricAndElderly: string;
-  enduranceAthletes: string;
+export interface ObservedIndicator {
+  label: string;
+  value: string;
 }
 
 export interface DiagnosticReport {
-  clinicalHeadline: string;
+  environmentalHeadline: string;
   executiveSummary: string;
-  sourceAttribution: SourceAttribution[];
-  vulnerablePopulationAdvice: VulnerableAdvice;
-  microClimateAction: string[];
-  confidenceScore: number;
+  observedIndicators: ObservedIndicator[];
+  contextNotes: string[];
+  limitations: string[];
 }
 
 export interface SatelliteLayerConfig {
@@ -113,5 +105,6 @@ export interface EnvironmentalStationData {
   weather: MicroWeather;
   safeWindows: SafeRespiratoryWindow[];
   hourlyTimeline: HourlyDataPoint[];
+  hourlyHistory?: HourlyDataPoint[];
   lastUpdated: string;
 }

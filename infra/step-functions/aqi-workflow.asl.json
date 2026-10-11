@@ -1,0 +1,19 @@
+{
+  "Comment": "AirExpo serverless AQI workflow (no SMS delivery)",
+  "StartAt": "FetchAQI",
+  "States": {
+    "FetchAQI": {
+      "Type": "Task",
+      "Resource": "${AqiWorkflowFunctionArn}",
+      "Parameters": {"action": "fetch-aqi", "latitude.$": "$.latitude", "longitude.$": "$.longitude"},
+      "Retry": [{"ErrorEquals": ["States.ALL"], "IntervalSeconds": 2, "MaxAttempts": 2, "BackoffRate": 2}],
+      "Next": "BuildRecommendation"
+    },
+    "BuildRecommendation": {
+      "Type": "Task",
+      "Resource": "${AqiWorkflowFunctionArn}",
+      "Parameters": {"action": "recommendation", "current.$": "$.current", "latitude.$": "$.latitude", "longitude.$": "$.longitude", "source.$": "$.source"},
+      "End": true
+    }
+  }
+}
