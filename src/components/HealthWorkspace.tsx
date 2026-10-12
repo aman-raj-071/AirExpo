@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { updateUserAttributes, confirmUserAttribute, fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth';
+import { confirmUserAttribute, fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth';
+import { requestPhoneVerification } from '../services/phoneVerification.mjs';
 import {
   Activity,
   AlertTriangle,
@@ -113,8 +114,10 @@ export const HealthWorkspace: React.FC<HealthWorkspaceProps> = ({ stationData, o
         setNotice('Mobile verified. Save your profile and enable SMS in Air quality alerts.');
       } else {
         if (!/^\+[1-9]\d{7,14}$/.test(profile.mobileNumber?.trim() || '')) throw Error('Enter a mobile number with country code, such as +919876543210.');
-        await updateUserAttributes({ userAttributes: { phone_number: profile.mobileNumber!.trim() } });
-        setPhoneCodeSent(true); setNotice('Verification code requested. Enter the SMS code below.');
+        const result = await requestPhoneVerification(profile.mobileNumber!.trim());
+        setPhoneCodeSent(!result.alreadyVerified);
+        if (result.alreadyVerified) { await fetchAuthSession({ forceRefresh: true }); setVerifiedPhone(profile.mobileNumber!.trim()); }
+        setNotice(result.alreadyVerified ? 'Mobile already verified. Save your profile to finish.' : 'Cognito accepted the OTP request. If it does not arrive, check AWS SMS sandbox destination verification, spending limits and sender registration.');
       }
     } catch (error) { setNotice(error instanceof Error ? error.message : 'Mobile verification failed. Check Cognito SMS configuration.'); }
     finally { setPhoneBusy(false); }
