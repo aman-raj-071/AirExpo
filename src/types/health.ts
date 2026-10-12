@@ -6,6 +6,8 @@ export interface HealthProfile {
   knownTriggers: string[];
   prescribedActionPlan: string;
   usualOutdoorMinutes: number;
+  mobileNumber?: string;
+  smsOptIn?: boolean;
 }
 
 export type SymptomSeverity = 'mild' | 'moderate' | 'severe';

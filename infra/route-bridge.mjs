@@ -40,7 +40,7 @@ export async function handler(event) {
       if (error instanceof FetchError || error instanceof WaitPeriodNotYetEndedJwkError) return output(503, { success: false, error: 'Cognito signing keys are temporarily unavailable. Retry shortly.' });
       return output(401, { success: false, error: 'Your session expired or is invalid. Sign in again.' });
     }
-    const request = { ...event, rawPath: path, body: event.isBase64Encoded ? Buffer.from(event.body || '', 'base64').toString('utf8') : event.body, requestContext: { ...event.requestContext, http: { ...event.requestContext?.http, method }, authorizer: { jwt: { claims: { sub: claims.sub } } } } };
+    const request = { ...event, rawPath: path, body: event.isBase64Encoded ? Buffer.from(event.body || '', 'base64').toString('utf8') : event.body, requestContext: { ...event.requestContext, http: { ...event.requestContext?.http, method }, authorizer: { jwt: { claims } } } };
     const result = isCloud ? (await smsHandler(request) || await cloudHandler(request)) : await routeApi(request);
     if (!result) return output(404, { error: 'Unknown API endpoint.' });
     return { ...result, headers: { ...result.headers, ...cors } };

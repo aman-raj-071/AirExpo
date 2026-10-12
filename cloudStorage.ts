@@ -4,6 +4,7 @@ import { FetchError, WaitPeriodNotYetEndedJwkError } from 'aws-jwt-verify/error'
 import { SimpleFetcher } from 'aws-jwt-verify/https';
 import { SimpleJwksCache } from 'aws-jwt-verify/jwk';
 import { cloudHandler } from './infra/lambda/cloud.mjs';
+import { smsHandler } from './infra/lambda/sms.mjs';
 export function registerCloudStorage(app:express.Express){
   const configured=()=>Boolean(process.env.AWS_REGION&&(process.env.COGNITO_USER_POOL_ID||process.env.VITE_COGNITO_USER_POOL_ID)&&(process.env.COGNITO_CLIENT_ID||process.env.VITE_COGNITO_USER_POOL_CLIENT_ID));
   app.get('/api/cloud/status',(_req:express.Request,res:express.Response)=>{
@@ -33,7 +34,8 @@ export function registerCloudStorage(app:express.Express){
       if(error instanceof FetchError || error instanceof WaitPeriodNotYetEndedJwkError) return res.status(503).json({error:'The server could not retrieve Cognito signing keys. Check server network access and retry shortly.'});
       return res.status(401).json({error:'Your session expired or is invalid. Sign in again.'});
     }
-    const result=await cloudHandler({rawPath:req.path,body:JSON.stringify(req.body||{}),queryStringParameters:req.query,requestContext:{http:{method:req.method},authorizer:{jwt:{claims:{sub:claims.sub}}}}});
+    const event={rawPath:'/api/cloud'+req.path,body:JSON.stringify(req.body||{}),queryStringParameters:req.query,requestContext:{http:{method:req.method},authorizer:{jwt:{claims}}}};
+    const result=await smsHandler(event)||await cloudHandler(event);
     if(!result)return res.status(404).json({error:'Unknown cloud endpoint.'});res.status(result.statusCode).set(result.headers).send(result.body);
   });
 }

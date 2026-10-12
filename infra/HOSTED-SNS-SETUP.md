@@ -1,5 +1,9 @@
 # Hosted SNS test delivery
 
+This topic-based setup is superseded by per-user mobile notifications.
+Follow `docs/PERSONAL-SMS.md` instead. The new endpoints do not broadcast to topic
+subscribers and require each user's saved mobile, Cognito verification and consent.
+
 The hosted frontend must be rebuilt to use the authenticated `/api/cloud/sms`
 and `/api/cloud/sms/test` endpoints. The existing topic is configured in Lambda.
 The old `/api/alerts/sms` routes only run in the local Express server.

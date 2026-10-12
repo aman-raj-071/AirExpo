@@ -9,6 +9,8 @@ export const DEFAULT_HEALTH_PROFILE: HealthProfile = {
   knownTriggers: [],
   prescribedActionPlan: '',
   usualOutdoorMinutes: 30,
+  mobileNumber: '',
+  smsOptIn: false,
 };
 
 function readJson<T>(key: string, fallback: T): T {

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { updateUserAttributes, confirmUserAttribute, fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth';
 import {
   Activity,
   AlertTriangle,
@@ -85,6 +86,29 @@ export const HealthWorkspace: React.FC<HealthWorkspaceProps> = ({ stationData, o
   const [cloudReady, setCloudReady] = useState(false);
   const [cloudLoading, setCloudLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [phoneBusy, setPhoneBusy] = useState(false);
+  const [phoneCode, setPhoneCode] = useState('');
+  const [phoneCodeSent, setPhoneCodeSent] = useState(false);
+  const [verifiedPhone, setVerifiedPhone] = useState('');
+  React.useEffect(() => { void fetchUserAttributes().then(a => { if (a.phone_number_verified === 'true') setVerifiedPhone(a.phone_number || ''); }).catch(() => {}); }, []);
+  const verifyMobile = async (confirm = false) => {
+    setPhoneBusy(true);
+    try {
+      if (confirm) {
+        await confirmUserAttribute({ userAttributeKey: 'phone_number', confirmationCode: phoneCode });
+        await fetchAuthSession({ forceRefresh: true });
+        const attributes = await fetchUserAttributes();
+        if (attributes.phone_number_verified !== 'true' || attributes.phone_number !== profile.mobileNumber?.trim()) throw Error('Mobile number verification did not match. Request a new code.');
+        setVerifiedPhone(attributes.phone_number || ''); setPhoneCodeSent(false); setPhoneCode('');
+        setNotice('Mobile verified. Save your profile and enable SMS in Air quality alerts.');
+      } else {
+        if (!/^\+[1-9]\d{7,14}$/.test(profile.mobileNumber?.trim() || '')) throw Error('Enter a mobile number with country code, such as +919876543210.');
+        await updateUserAttributes({ userAttributes: { phone_number: profile.mobileNumber!.trim() } });
+        setPhoneCodeSent(true); setNotice('Verification code requested. Enter the SMS code below.');
+      }
+    } catch (error) { setNotice(error instanceof Error ? error.message : 'Mobile verification failed. Check Cognito SMS configuration.'); }
+    finally { setPhoneBusy(false); }
+  };
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [severity, setSeverity] = useState<SymptomSeverity>('mild');
   const [suspectedTriggers, setSuspectedTriggers] = useState('');
@@ -166,7 +190,8 @@ export const HealthWorkspace: React.FC<HealthWorkspaceProps> = ({ stationData, o
       if (!saved || saved.mode !== next.mode || saved.ageRange !== next.ageRange ||
           saved.prescribedActionPlan !== next.prescribedActionPlan ||
           Number(saved.usualOutdoorMinutes) !== Number(next.usualOutdoorMinutes) ||
-          JSON.stringify(saved.knownTriggers) !== JSON.stringify(next.knownTriggers)) {
+          JSON.stringify(saved.knownTriggers) !== JSON.stringify(next.knownTriggers) ||
+          (saved.mobileNumber || '') !== (next.mobileNumber?.trim() || '') || Boolean(saved.smsOptIn) !== Boolean(next.smsOptIn)) {
         throw new Error('The server did not confirm the latest profile details. Please retry and check your cloud connection.');
       }
       const confirmedProfile = { ...DEFAULT_HEALTH_PROFILE, ...saved };
@@ -294,6 +319,15 @@ export const HealthWorkspace: React.FC<HealthWorkspaceProps> = ({ stationData, o
                 <label className="font-label-md text-on-surface">Usual outdoor duration
                   <input disabled={cloudLoading || saving} type="number" min="5" max="300" value={profile.usualOutdoorMinutes} onChange={(e) => editProfile({ usualOutdoorMinutes: Number(e.target.value) })} className="mt-2 w-full p-3 rounded-xl border border-outline-variant disabled:opacity-60" />
                 </label>
+              </div>
+              <div className="space-y-3 rounded-xl border border-outline-variant p-4">
+                <label className="block font-label-md">Mobile number for SMS (optional)
+                  <input type="tel" autoComplete="tel" maxLength={16} value={profile.mobileNumber || ''} onChange={e => { editProfile({ mobileNumber: e.target.value }); setPhoneCodeSent(false); }} disabled={saving || phoneBusy} placeholder="+919876543210" className="mt-2 w-full p-3 rounded-xl border border-outline-variant" />
+                </label>
+                <p className="text-sm">Use your country code. Notifications go only to your saved, verified number. AWS SMS charges may apply.</p>
+                <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={Boolean(profile.smsOptIn)} onChange={e => editProfile({ smsOptIn: e.target.checked })} disabled={saving} />I own this number and agree to receive AirExpo SMS notifications through AWS. I can opt out by unchecking this box and saving.</label>
+                <button type="button" disabled={phoneBusy || !profile.mobileNumber} onClick={() => void verifyMobile()} className="underline disabled:opacity-50">{verifiedPhone === profile.mobileNumber?.trim() && verifiedPhone ? 'Mobile verified · resend code' : phoneBusy ? 'Requesting…' : 'Send verification code'}</button>
+                {phoneCodeSent && <div className="flex flex-wrap gap-3"><input aria-label="Mobile verification code" inputMode="numeric" autoComplete="one-time-code" value={phoneCode} onChange={e => setPhoneCode(e.target.value)} className="p-3 rounded-xl border border-outline-variant" /><button type="button" disabled={phoneBusy || !phoneCode} onClick={() => void verifyMobile(true)} className="underline">Verify mobile</button></div>}
               </div>
               <div>
                 <div className="font-label-md text-on-surface mb-2">Known triggers (optional)</div>

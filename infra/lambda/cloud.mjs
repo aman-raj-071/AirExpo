@@ -164,7 +164,9 @@ export async function cloudHandler(event){
     }
     if(path==='/profile'&&method==='POST'){
       if(!input||!['everyday','asthma','athlete'].includes(input.mode)||typeof input.ageRange!=='string'||input.ageRange.length>30||!Array.isArray(input.knownTriggers)||input.knownTriggers.length>20||!input.knownTriggers.every(value=>typeof value==='string'&&value.length<=60)||typeof input.prescribedActionPlan!=='string'||input.prescribedActionPlan.length>5000||!Number.isFinite(Number(input.usualOutdoorMinutes))||Number(input.usualOutdoorMinutes)<5||Number(input.usualOutdoorMinutes)>300)return reply(400,{error:'Please enter valid health profile details.'});
-      const profile={mode:input.mode,ageRange:input.ageRange,knownTriggers:input.knownTriggers,prescribedActionPlan:input.prescribedActionPlan,usualOutdoorMinutes:Number(input.usualOutdoorMinutes),userId,updatedAt:new Date().toISOString()};
+      const mobileNumber=typeof input.mobileNumber==='string'?input.mobileNumber.trim():'';
+      if((mobileNumber&&!/^\+[1-9]\d{7,14}$/.test(mobileNumber))||(input.smsOptIn!==undefined&&typeof input.smsOptIn!=='boolean')||(input.smsOptIn===true&&!mobileNumber))return reply(400,{error:'Enter a valid mobile number with country code, such as +919876543210, before enabling SMS.'});
+      const profile={mobileNumber,smsOptIn:input.smsOptIn===true,mode:input.mode,ageRange:input.ageRange,knownTriggers:input.knownTriggers,prescribedActionPlan:input.prescribedActionPlan,usualOutdoorMinutes:Number(input.usualOutdoorMinutes),userId,updatedAt:new Date().toISOString()};
       await mirrorHealthRecord('profiles',userId,'current',profile);
       await db.send(new UpdateCommand({TableName:process.env.SETTINGS_TABLE,Key:{userId},UpdateExpression:'SET healthProfile = :profile',ExpressionAttributeValues:{':profile':profile}}));return reply(200,{data:profile});
     }
