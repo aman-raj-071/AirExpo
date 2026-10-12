@@ -6,6 +6,7 @@ import { SimpleJwksCache } from 'aws-jwt-verify/jwk';
 import { SimpleFetcher } from 'aws-jwt-verify/https';
 import { FetchError, WaitPeriodNotYetEndedJwkError } from 'aws-jwt-verify/error';
 import { routeApi } from './routeApi.mjs';
+import { normalizeRoutePath } from './routePaths.mjs';
 import { cloudHandler } from './cloud.mjs';
 import { smsHandler } from './sms.mjs';
 
@@ -28,7 +29,7 @@ export async function handler(event) {
   } : {};
   const output = (statusCode, body) => ({ statusCode, headers: { 'content-type': 'application/json', 'cache-control': 'no-store', ...cors }, body: JSON.stringify(body) });
   const method = event.requestContext?.http?.method || event.httpMethod;
-  const path = event.rawPath || event.path;
+  const path = normalizeRoutePath(event.rawPath || event.path);
   const isCloud = typeof path === 'string' && path.startsWith('/api/cloud/');
   if (paths.has(path) || isCloud) {
     if (origin && !origins.has(origin)) return output(403, { success: false, error: 'Website origin is not allowed.' });

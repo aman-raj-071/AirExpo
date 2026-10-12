@@ -1,9 +1,10 @@
 import { getRoutes, geocodeRoute, validPoint } from './routeService.mjs';
+import { normalizeRoutePath } from './routePaths.mjs';
 
 const reply = (statusCode, body) => ({ statusCode, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' }, body: JSON.stringify(body) });
 
 export async function routeApi(event) {
-  const path = event.rawPath;
+  const path = normalizeRoutePath(event.rawPath);
   const method = event.requestContext?.http?.method;
   if (!['/api/routes', '/api/route-geocode', '/api/route-air-quality'].includes(path)) return null;
   try {
