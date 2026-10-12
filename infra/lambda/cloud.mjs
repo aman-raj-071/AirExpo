@@ -104,7 +104,7 @@ export async function cloudHandler(event){
         const recentHistory=prior.slice(-2);
         let model='unknown',inputTokens=0,outputTokens=0,attemptCount=0;
         // Use Groq with retry logic
-        if(process.env.GROQ_API_KEY){
+        if(process.env.GROQ_API_KEY && process.env.AI_PROVIDER!=='gemini'){
           model=process.env.GROQ_MODEL||'llama-3.3-70b-versatile';
           const groqHistory=recentHistory.map(m=>({role:m.role==='assistant'?'assistant':'user',content:m.content}));
           const reqBody={model,messages:[{role:'system',content:systemPrompt},...groqHistory,{role:'user',content:message}],temperature:0.2,max_tokens:700};

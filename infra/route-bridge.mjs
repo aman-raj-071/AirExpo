@@ -33,7 +33,7 @@ export async function handler(event) {
     if (origin && !origins.has(origin)) return output(403, { success: false, error: 'Website origin is not allowed.' });
     if (method === 'OPTIONS') return { ...output(204, null), body: '' };
     const token = headers.authorization?.replace(/^Bearer\s+/i, '');
-    if (!token) return output(401, { success: false, error: 'Sign in before using the route planner.' });
+    if (!token) return output(401, { success: false, error: 'Sign in before using this service.' });
     let claims;
     try { claims = await verifier.verify(token); } catch (error) {
       if (error instanceof FetchError || error instanceof WaitPeriodNotYetEndedJwkError) return output(503, { success: false, error: 'Cognito signing keys are temporarily unavailable. Retry shortly.' });
