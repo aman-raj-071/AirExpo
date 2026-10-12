@@ -90,6 +90,16 @@ export const HealthWorkspace: React.FC<HealthWorkspaceProps> = ({ stationData, o
   const [phoneCode, setPhoneCode] = useState('');
   const [phoneCodeSent, setPhoneCodeSent] = useState(false);
   const [verifiedPhone, setVerifiedPhone] = useState('');
+  React.useEffect(() => {
+    const refreshMobile = () => {
+      void cloudRequest('/profile').then(result => {
+        setProfile(current => ({ ...current, mobileNumber: result.data?.mobileNumber || '', smsOptIn: result.data?.smsOptIn === true }));
+      }).catch(() => {});
+      void fetchUserAttributes().then(a => setVerifiedPhone(a.phone_number_verified === 'true' ? a.phone_number || '' : '')).catch(() => {});
+    };
+    window.addEventListener('airexpo-profile-updated', refreshMobile);
+    return () => window.removeEventListener('airexpo-profile-updated', refreshMobile);
+  }, []);
   React.useEffect(() => { void fetchUserAttributes().then(a => { if (a.phone_number_verified === 'true') setVerifiedPhone(a.phone_number || ''); }).catch(() => {}); }, []);
   const verifyMobile = async (confirm = false) => {
     setPhoneBusy(true);

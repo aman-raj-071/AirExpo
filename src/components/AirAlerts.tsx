@@ -44,10 +44,13 @@ export function AirAlerts({ aqi, threshold, setThreshold, location, browserAlert
     };
     
     void check(); // Initial check
+    const refreshSms = () => { void check(); };
+    window.addEventListener('airexpo-profile-updated', refreshSms);
     const timer = setInterval(() => void check(), 5 * 60 * 1000); // Refresh configuration every 5 minutes.
     
     return () => {
       mounted = false;
+      window.removeEventListener('airexpo-profile-updated', refreshSms);
       clearInterval(timer);
       if (sliderTimer.current) clearTimeout(sliderTimer.current);
     };
