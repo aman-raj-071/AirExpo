@@ -1,4 +1,5 @@
 import {canAccessPrivateData} from './authorization.mjs';
+import { generateGemini, geminiKeys } from './gemini.mjs';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, DeleteCommand, GetCommand, PutCommand, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { S3Client, DeleteObjectCommand, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
@@ -93,7 +94,7 @@ export async function cloudHandler(event){
       let answer;
       if(emergency) answer='Severe breathing difficulty, inability to speak normally, blue lips, or confusion can be an emergency. Call your local emergency services now and follow your clinician-provided emergency action plan. Do not wait for this chat.';
       else {
-        if(!process.env.GROQ_API_KEY&&(process.env.AI_PROVIDER!=='gemini'||!process.env.GEMINI_API_KEY))return reply(503,{error:'The assistant model is not configured. Set GROQ_API_KEY on the server.'});
+        if(process.env.AI_PROVIDER==='gemini' ? !geminiKeys().length : !process.env.GROQ_API_KEY)return reply(503,{error:'The assistant model is not configured on the server.'});
         // Reduce token usage: compact environment data
         let environment=null;const coordinates=input.environment?.coordinates;const lat=Number(coordinates?.lat),lon=Number(coordinates?.lon);
         if(Number.isFinite(lat)&&Math.abs(lat)<=90&&Number.isFinite(lon)&&Math.abs(lon)<=180){
@@ -128,28 +129,16 @@ export async function cloudHandler(event){
             }catch(err){console.error(`[chat] Groq attempt ${attemptCount} failed:`,err.message);if(attempt===2)return reply(502,{error:'The assistant could not reach its model. Retry shortly.'});}
           }
         } else {
-          model=process.env.GEMINI_MODEL||'gemini-1.5-flash';
           const history=recentHistory.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));
           const reqBody={system_instruction:{parts:[{text:systemPrompt}]},contents:[...history,{role:'user',parts:[{text:message}]}],generationConfig:{temperature:0.2,maxOutputTokens:700}};
-          for(let attempt=0;attempt<3;attempt++){
-            attemptCount=attempt+1;
-            try{
-              const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',headers:{'content-type':'application/json','x-goog-api-key':process.env.GEMINI_API_KEY},body:JSON.stringify(reqBody),signal:AbortSignal.timeout(20000)});
-              if(response.status===429){
-                const retryAfter=Number(response.headers.get('retry-after'))||Math.pow(2,attempt);
-                console.log(`[chat] Gemini 429, retry after ${retryAfter}s (attempt ${attemptCount})`);
-                if(attempt<2)await new Promise(r=>setTimeout(r,retryAfter*1000));else return reply(429,{error:'Gemini quota is exhausted. Wait a minute and retry.'});
-                continue;
-              }
-              if(!response.ok)throw new Error(`Gemini returned ${response.status}`);
-              const result=await response.json();
-              answer=result.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('').trim();
-              inputTokens=result.usageMetadata?.promptTokenCount||0;
-              outputTokens=result.usageMetadata?.candidatesTokenCount||0;
-              if(!answer)return reply(502,{error:'The assistant returned no answer. Retry shortly.'});
-              break;
-            }catch(err){console.error(`[chat] Gemini attempt ${attemptCount} failed:`,err.message);if(attempt===2)return reply(502,{error:'The assistant could not reach its model. Retry shortly.'});}
-          }
+          try {
+            const result=await generateGemini(reqBody,{budgetMs:Math.max(1,24000-(Date.now()-startTime))});
+            model=result.model;attemptCount=result.attempts;
+            answer=result.generated.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('').trim();
+            inputTokens=result.generated.usageMetadata?.promptTokenCount||0;
+            outputTokens=result.generated.usageMetadata?.candidatesTokenCount||0;
+            if(!answer)return reply(502,{error:'The assistant returned no answer. Retry shortly.'});
+          } catch(error) { return reply(error.statusCode||502,{error:error.statusCode?error.message:'Gemini returned an unreadable response. Retry shortly.'}); }
         }
         const latency=Date.now()-startTime;
         console.log(`[chat] Success - model: ${model}, attempts: ${attemptCount}, latency: ${latency}ms, tokens: in=${inputTokens} out=${outputTokens}`);
@@ -267,7 +256,7 @@ export async function cloudHandler(event){
       const result=await db.send(new GetCommand({TableName:process.env.DOCUMENT_TABLE,Key:{userId,documentId}}));
       if(!result.Item)return reply(404,{error:'Document not found.'});
       if(!result.Item.confirmed||!Array.isArray(result.Item.confirmedFacts)||!result.Item.confirmedFacts.length)return reply(400,{error:'Confirm the extracted report text before running AI analysis.'});
-      if(process.env.AI_PROVIDER!=='gemini'||!process.env.GEMINI_API_KEY)return reply(503,{error:'AI analysis needs GEMINI_API_KEY and AI_PROVIDER=gemini set on the server.'});
+      if(process.env.AI_PROVIDER!=='gemini'||!geminiKeys().length)return reply(503,{error:'AI analysis needs Gemini credentials and AI_PROVIDER=gemini set on the server.'});
       const facts=result.Item.confirmedFacts.slice(0,150).join('\n').slice(0,10000);
       const prompt=`You are AirExpo's health document assistant. A user has uploaded and reviewed a document. Your job is to produce a comprehensive, structured health and wellness action summary that the user can actually follow.
 
@@ -292,18 +281,10 @@ Respond with ONLY valid JSON in this exact schema (no markdown, no code fences):
 
 Document text:
 ${facts}`;
-      const model=process.env.GEMINI_MODEL||'gemini-2.5-flash';
-      let response;
+      let generated;
       try {
-        response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
-          method:'POST',headers:{'content-type':'application/json','x-goog-api-key':process.env.GEMINI_API_KEY},
-          body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:0.2,maxOutputTokens:4096,responseMimeType:'application/json'}}),
-          signal:AbortSignal.timeout(20000),
-        });
-      }catch{return reply(504,{error:'Report analysis took too long or could not connect to Gemini. Retry shortly.'});}
-      if(response.status===429)return reply(429,{error:'Gemini rate limit reached. Wait a moment and retry.'});
-      if(!response.ok)return reply(502,{error:'Gemini report analysis is unavailable. Check the server model configuration and retry.'});
-      const generated=await response.json();
+        ({generated}=await generateGemini({contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:0.2,maxOutputTokens:4096,responseMimeType:'application/json'}}));
+      }catch(error){return reply(error.statusCode||502,{error:error.statusCode?error.message:'Gemini returned an unreadable response. Retry shortly.'});}
       let parsed;
       try{const raw=generated.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('').trim();if(!raw)throw new Error('empty');parsed=JSON.parse(raw);if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw new Error('invalid');}catch{return reply(502,{error:'Gemini returned an unreadable response. Try again shortly.'});}
       const clean=(arr,max=8)=>Array.isArray(arr)?arr.filter(s=>typeof s==='string'&&s.trim()).slice(0,max).map(s=>s.trim()):[];
