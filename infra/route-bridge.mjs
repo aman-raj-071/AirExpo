@@ -7,6 +7,7 @@ import { SimpleFetcher } from 'aws-jwt-verify/https';
 import { FetchError, WaitPeriodNotYetEndedJwkError } from 'aws-jwt-verify/error';
 import { routeApi } from './routeApi.mjs';
 import { cloudHandler } from './cloud.mjs';
+import { smsHandler } from './sms.mjs';
 
 const origins = new Set(['https://main.d1u40zs0ugi10g.amplifyapp.com', 'http://localhost:3000', 'http://127.0.0.1:3000']);
 const paths = new Set(['/api/routes', '/api/route-geocode', '/api/route-air-quality']);
@@ -40,7 +41,7 @@ export async function handler(event) {
       return output(401, { success: false, error: 'Your session expired or is invalid. Sign in again.' });
     }
     const request = { ...event, rawPath: path, body: event.isBase64Encoded ? Buffer.from(event.body || '', 'base64').toString('utf8') : event.body, requestContext: { ...event.requestContext, http: { ...event.requestContext?.http, method }, authorizer: { jwt: { claims: { sub: claims.sub } } } } };
-    const result = isCloud ? await cloudHandler(request) : await routeApi(request);
+    const result = isCloud ? (await smsHandler(request) || await cloudHandler(request)) : await routeApi(request);
     if (!result) return output(404, { error: 'Unknown API endpoint.' });
     return { ...result, headers: { ...result.headers, ...cors } };
   }

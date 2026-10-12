@@ -42,7 +42,7 @@ async function saveSettings() {
 }
 
 function configured() {
-  return Boolean((process.env.SNS_REGION || process.env.AWS_REGION) && recipients().length === 2);
+  return Boolean((process.env.SNS_REGION || process.env.AWS_REGION) && recipients().length > 0);
 }
 
 function recipients() {

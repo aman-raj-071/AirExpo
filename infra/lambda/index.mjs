@@ -1,6 +1,7 @@
 import { exchangeCodeHandler } from './exchangeCode.mjs';
 import { cloudHandler } from './cloud.mjs';
 import { routeApi } from './routeApi.mjs';
+import { smsHandler } from './sms.mjs';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 const s3 = new S3Client({});
@@ -36,6 +37,8 @@ export async function handler(event) {
     return { processed: 0 };
   }
 
+  const smsResult = await smsHandler(event);
+  if (smsResult) return smsResult;
   const cloudResult = await cloudHandler(event);
   if (cloudResult) return cloudResult;
   const userId = userIdFrom(event);
