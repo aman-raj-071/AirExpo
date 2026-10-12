@@ -16,7 +16,7 @@ export function registerCloudStorage(app:express.Express){
       journalConfigured:identity&&Boolean(process.env.SETTINGS_TABLE&&process.env.REPORT_BUCKET),
       documentsConfigured:identity&&Boolean(process.env.DOCUMENT_TABLE&&process.env.REPORT_BUCKET),
       assistantConfigured:identity&&Boolean(process.env.CONVERSATION_TABLE&&(process.env.GROQ_API_KEY||(process.env.AI_PROVIDER==='gemini'&&process.env.GEMINI_API_KEY))),
-      documentsAnalyseConfigured:identity&&Boolean(process.env.DOCUMENT_TABLE&&process.env.GROQ_API_KEY),
+      documentsAnalyseConfigured:identity&&Boolean(process.env.DOCUMENT_TABLE&&process.env.AI_PROVIDER==='gemini'&&process.env.GEMINI_API_KEY),
       reminderConfigured:identity&&Boolean(process.env.REMINDER_TABLE),
     };
     return res.json(status);

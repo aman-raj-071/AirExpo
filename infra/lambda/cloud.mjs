@@ -265,7 +265,7 @@ export async function cloudHandler(event){
       const result=await db.send(new GetCommand({TableName:process.env.DOCUMENT_TABLE,Key:{userId,documentId}}));
       if(!result.Item)return reply(404,{error:'Document not found.'});
       if(!result.Item.confirmed||!Array.isArray(result.Item.confirmedFacts)||!result.Item.confirmedFacts.length)return reply(400,{error:'Confirm the extracted report text before running AI analysis.'});
-      if(!process.env.GROQ_API_KEY)return reply(503,{error:'AI analysis is not configured. Set GROQ_API_KEY on the server.'});
+      if(process.env.AI_PROVIDER!=='gemini'||!process.env.GEMINI_API_KEY)return reply(503,{error:'AI analysis needs GEMINI_API_KEY and AI_PROVIDER=gemini set on the server.'});
       const facts=result.Item.confirmedFacts.slice(0,150).join('\n').slice(0,10000);
       const prompt=`You are AirExpo's health document assistant. A user has uploaded and reviewed a document. Your job is to produce a comprehensive, structured health and wellness action summary that the user can actually follow.
 
@@ -290,24 +290,20 @@ Respond with ONLY valid JSON in this exact schema (no markdown, no code fences):
 
 Document text:
 ${facts}`;
-      const groqModel=process.env.GROQ_MODEL||'llama-3.3-70b-versatile';
-      const groqRes=await fetch('https://api.groq.com/openai/v1/chat/completions',{
-        method:'POST',
-        headers:{'content-type':'application/json','authorization':`Bearer ${process.env.GROQ_API_KEY}`},
-        body:JSON.stringify({
-          model:groqModel,
-          messages:[{role:'user',content:prompt}],
-          temperature:0.2,
-          max_tokens:1500,
-          response_format:{type:'json_object'},
-        }),
-        signal:AbortSignal.timeout(25000),
-      });
-      if(groqRes.status===429)return reply(429,{error:'Groq rate limit reached. Wait a moment and retry.'});
-      if(!groqRes.ok){const errBody=await groqRes.json().catch(()=>({}));return reply(502,{error:errBody?.error?.message||'AI analysis service is temporarily unavailable. Try again shortly.'});}
-      const groqData=await groqRes.json();
+      const model=process.env.GEMINI_MODEL||'gemini-2.5-flash';
+      let response;
+      try {
+        response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
+          method:'POST',headers:{'content-type':'application/json','x-goog-api-key':process.env.GEMINI_API_KEY},
+          body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:0.2,maxOutputTokens:4096,responseMimeType:'application/json'}}),
+          signal:AbortSignal.timeout(20000),
+        });
+      }catch{return reply(504,{error:'Report analysis took too long or could not connect to Gemini. Retry shortly.'});}
+      if(response.status===429)return reply(429,{error:'Gemini rate limit reached. Wait a moment and retry.'});
+      if(!response.ok)return reply(502,{error:'Gemini report analysis is unavailable. Check the server model configuration and retry.'});
+      const generated=await response.json();
       let parsed;
-      try{const raw=groqData.choices?.[0]?.message?.content?.trim();if(!raw)throw new Error('empty');parsed=JSON.parse(raw);}catch{return reply(502,{error:'AI returned an unreadable response. Try again shortly.'});}
+      try{const raw=generated.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('').trim();if(!raw)throw new Error('empty');parsed=JSON.parse(raw);if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw new Error('invalid');}catch{return reply(502,{error:'Gemini returned an unreadable response. Try again shortly.'});}
       const clean=(arr,max=8)=>Array.isArray(arr)?arr.filter(s=>typeof s==='string'&&s.trim()).slice(0,max).map(s=>s.trim()):[];
       const analysis={
         headline:typeof parsed.headline==='string'?parsed.headline.slice(0,200):'Document analysed.',
