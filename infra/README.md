@@ -44,6 +44,13 @@ and requires consent before sending messages or selected health context.
 
 ## Connect Amplify Hosting
 
+To update only the deployed assistant's Gemini key, set `GEMINI_API_KEY` in
+the ignored root `.env.local`, then run `node infra/configure-gemini.mjs` from
+the repository root with AWS CLI access. This preserves other Lambda settings
+and does not enable Google billing. Optional `AIREXPO_LAMBDA_FUNCTION` and
+`AWS_REGION` environment variables override `AirExpo` and `us-east-1`.
+Free-tier requests remain subject to Google's per-minute and daily allowances.
+
 In the Amplify console, choose **New app → Host web app**, connect the repository,
 and use the repository root as the application root. Build command: `npm run
 build`; output directory: `dist`.

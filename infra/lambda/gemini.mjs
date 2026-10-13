@@ -13,7 +13,7 @@ export async function generateGemini(body, { env = process.env, fetchImpl = fetc
   const keys = geminiKeys(env), model = env.GEMINI_MODEL || 'gemini-2.5-flash';
   if (!keys.length) throw new GeminiError(503, 'Gemini is not configured on the server.');
   const available = keys.filter(key => (coolingUntil.get(key) || 0) <= now());
-  if (!available.length) throw new GeminiError(429, 'Gemini rate limit reached. Wait before retrying; daily quota may require a quota increase.');
+  if (!available.length) throw new GeminiError(429, 'Gemini free usage limit reached. Please wait before retrying. If the daily allowance is exhausted, try again after it resets.');
   const deadline = now() + budgetMs;
   let lastError = new GeminiError(503, 'Gemini is temporarily unavailable. Retry shortly.');
   for (let attempt = 0; attempt < 3 && now() < deadline; attempt++) {
@@ -42,7 +42,7 @@ export async function generateGemini(body, { env = process.env, fetchImpl = fetc
         const raw = response.headers.get('retry-after');
         const seconds = Number(raw) || (raw ? (Date.parse(raw) - now()) / 1000 : 60);
         coolingUntil.set(key, now() + Math.max(1000, (Number.isFinite(seconds) ? seconds : 60) * 1000));
-        lastError = new GeminiError(429, 'Gemini rate limit or quota reached. Retry later or increase the project quota.');
+        lastError = new GeminiError(429, 'Gemini free usage limit reached. Please wait before retrying. If the daily allowance is exhausted, try again after it resets.');
       } else if (response.status === 408 || response.status >= 500) {
         lastError = new GeminiError(503, 'Gemini is temporarily unavailable. Retry shortly.');
       } else throw new GeminiError(502, 'Gemini could not complete the request. Check server configuration.');
